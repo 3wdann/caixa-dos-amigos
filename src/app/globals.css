@@ -106,6 +106,15 @@
     background-attachment: fixed;
   }
 
+  .dark body {
+    background-image:
+      radial-gradient(circle at top left, rgba(70, 191, 174, 0.18), transparent 20%),
+      radial-gradient(circle at top right, rgba(128, 119, 255, 0.18), transparent 22%),
+      radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.06) 2px, transparent 2.5px),
+      radial-gradient(circle at 82% 14%, rgba(255, 255, 255, 0.05) 2px, transparent 2.5px),
+      linear-gradient(180deg, #0d1220 0%, #141b2f 100%);
+  }
+
   a {
     @apply transition-colors;
   }
@@ -126,6 +135,13 @@
       radial-gradient(circle at top left, rgba(197, 246, 240, 0.92), transparent 20%),
       radial-gradient(circle at top right, rgba(222, 217, 255, 0.82), transparent 24%),
       linear-gradient(180deg, rgba(245, 248, 249, 0.96) 0%, rgba(247, 242, 236, 0.96) 100%);
+  }
+
+  .dark .soft-app-shell {
+    background-image:
+      radial-gradient(circle at top left, rgba(70, 191, 174, 0.16), transparent 18%),
+      radial-gradient(circle at top right, rgba(128, 119, 255, 0.2), transparent 22%),
+      linear-gradient(180deg, rgba(13, 18, 32, 0.96) 0%, rgba(20, 27, 47, 0.96) 100%);
   }
 
   .soft-panel {

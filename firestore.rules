@@ -1,0 +1,134 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function caixaDoc(caixaId) {
+      return get(/databases/$(database)/documents/caixas/$(caixaId));
+    }
+
+    function authEmail() {
+      return isSignedIn() && request.auth.token.email != null
+        ? request.auth.token.email
+        : null;
+    }
+
+    function isGerente(caixaId) {
+      return isSignedIn() && (
+        caixaDoc(caixaId).data.gerenteId == request.auth.uid ||
+        caixaDoc(caixaId).data.gerenteEmail == authEmail()
+      );
+    }
+
+    function isMembro(caixaId) {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/caixas/$(caixaId)/membros/$(request.auth.uid)) ||
+        exists(/databases/$(database)/documents/caixas/$(caixaId)/membros/$(authEmail()))
+      );
+    }
+
+    function canReadCaixaResource() {
+      return isSignedIn() && (
+        resource.data.gerenteId == request.auth.uid ||
+        resource.data.gerenteEmail == authEmail() ||
+        exists(/databases/$(database)/documents/caixas/$(resource.data.id)/membros/$(request.auth.uid)) ||
+        exists(/databases/$(database)/documents/caixas/$(resource.data.id)/membros/$(authEmail()))
+      );
+    }
+
+    function canManageCaixaResource() {
+      return isSignedIn() && (
+        resource.data.gerenteId == request.auth.uid ||
+        resource.data.gerenteEmail == authEmail()
+      );
+    }
+
+    function isOwnMemberPayload(membroId) {
+      return isSignedIn() &&
+        authEmail() != null &&
+        membroId == authEmail() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.email == authEmail() &&
+        request.resource.data.status == 'ativo';
+    }
+
+    function isOwnRejectedPaymentRetry(caixaId) {
+      return isSignedIn() &&
+        isMembro(caixaId) &&
+        resource.data.membroId == request.auth.uid &&
+        resource.data.status == 'rejeitado' &&
+        request.resource.data.membroId == request.auth.uid &&
+        request.resource.data.status == 'pendente';
+    }
+
+    function canCreateInvite() {
+      return isSignedIn() &&
+        request.resource.data.criadoPor == request.auth.uid &&
+        isGerente(request.resource.data.caixaId);
+    }
+
+    function canManageExistingInvite() {
+      return isSignedIn() &&
+        (resource.data.criadoPor == request.auth.uid || isGerente(resource.data.caixaId));
+    }
+
+    function canAcceptInvite() {
+      return isSignedIn() &&
+        resource.data.status == 'ativo' &&
+        request.resource.data.status == 'aceito' &&
+        request.resource.data.convidadoUserId == request.auth.uid &&
+        (
+          resource.data.emailDestino == null ||
+          resource.data.emailDestino == authEmail()
+        );
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /painel_index/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create, update: if isSignedIn();
+    }
+
+    match /caixas/{caixaId} {
+      allow create: if isSignedIn() && request.resource.data.gerenteId == request.auth.uid;
+      allow read: if canReadCaixaResource();
+      allow update, delete: if canManageCaixaResource();
+
+      match /membros/{membroId} {
+        allow read: if isGerente(caixaId) || isMembro(caixaId) ||
+          (isSignedIn() && authEmail() != null && membroId == authEmail());
+        allow create: if isGerente(caixaId) || isOwnMemberPayload(membroId);
+        allow update, delete: if isGerente(caixaId);
+      }
+
+      match /notas/{notaId} {
+        allow read: if isGerente(caixaId) || isMembro(caixaId);
+        allow create, update, delete: if isGerente(caixaId);
+      }
+
+      match /pagamentos/{pagamentoId} {
+        allow read: if isGerente(caixaId) || isMembro(caixaId);
+        allow create: if isGerente(caixaId) || (
+          isSignedIn() &&
+          request.resource.data.membroId == request.auth.uid &&
+          isMembro(caixaId)
+        );
+        allow update: if isGerente(caixaId) || isOwnRejectedPaymentRetry(caixaId);
+        allow delete: if isGerente(caixaId);
+      }
+    }
+
+    match /convites/{token} {
+      allow read: if true;
+      allow create: if canCreateInvite();
+      allow update: if canManageExistingInvite() || canAcceptInvite();
+      allow delete: if canManageExistingInvite();
+    }
+  }
+}

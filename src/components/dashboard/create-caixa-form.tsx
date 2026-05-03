@@ -41,10 +41,18 @@ export function CreateCaixaForm({
   profile,
   userId,
   onSuccess,
+  mode = "novo",
+  title,
+  description,
+  showBackupRestore = true,
 }: {
   profile: UserProfile;
   userId: string;
   onSuccess?: () => void;
+  mode?: "novo" | "andamento";
+  title?: string;
+  description?: string;
+  showBackupRestore?: boolean;
 }) {
   const [backupJson, setBackupJson] = useState("");
   const [restoringBackup, setRestoringBackup] = useState(false);
@@ -63,8 +71,8 @@ export function CreateCaixaForm({
       valorMensal: "" as unknown as number,
       totalMeses: "" as unknown as number,
       dataInicio: new Date().toISOString().slice(0, 10),
-      modoCriacao: "novo",
-      mesAtual: 1,
+      modoCriacao: mode,
+      mesAtual: mode === "andamento" ? 2 : 1,
     },
   });
 
@@ -73,16 +81,24 @@ export function CreateCaixaForm({
   const modoCriacao = watch("modoCriacao");
   const mesAtual = watch("mesAtual");
   const totalPorMes = Number(valorMensal || 0) * Number(totalMeses || 0);
+  const resolvedTitle = title ?? (mode === "andamento" ? "Continuar caixa ja existente" : "Criar novo caixa");
+  const resolvedDescription =
+    description ??
+    (mode === "andamento"
+      ? "Cadastre aqui um caixa que ja esta rodando fora do app para continuar o acompanhamento sem recomecar do zero."
+      : "Defina nome, valor mensal, quantidade de membros e a data de inicio para abrir um novo grupo.");
   const suggestion = useMemo(
     () => buildSuggestion(Number(valorMensal || 0), Number(totalMeses || 0)),
     [totalMeses, valorMensal],
   );
 
   useEffect(() => {
+    setValue("modoCriacao", mode, { shouldDirty: false, shouldValidate: true });
+
     if (modoCriacao === "novo" && mesAtual !== 1) {
       setValue("mesAtual", 1, { shouldDirty: true, shouldValidate: true });
     }
-  }, [mesAtual, modoCriacao, setValue]);
+  }, [mesAtual, mode, modoCriacao, setValue]);
 
   async function onSubmit(values: CreateCaixaFormInput) {
     try {
@@ -104,8 +120,8 @@ export function CreateCaixaForm({
         valorMensal: "" as unknown as number,
         totalMeses: "" as unknown as number,
         dataInicio: values.dataInicio,
-        modoCriacao: "novo",
-        mesAtual: 1,
+        modoCriacao: mode,
+        mesAtual: mode === "andamento" ? values.mesAtual : 1,
       });
     } catch (error) {
       const message =
@@ -153,45 +169,10 @@ export function CreateCaixaForm({
   return (
     <div className="space-y-5">
       <div className="space-y-1">
-        <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">Criar novo caixa</h2>
+        <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">{resolvedTitle}</h2>
         <p className="text-sm text-slate-600 dark:text-slate-300">
-          Comece um caixa do zero ou registre um caixa que ja esta em andamento.
+          {resolvedDescription}
         </p>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <button
-          type="button"
-          className={cn(
-            "rounded-2xl border px-4 py-3 text-left transition",
-            modoCriacao === "novo"
-              ? "border-emerald-500 bg-emerald-50 text-emerald-950 dark:border-emerald-400 dark:bg-emerald-500/10 dark:text-emerald-100"
-              : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 dark:border-white/10 dark:bg-slate-950 dark:text-slate-200",
-          )}
-          onClick={() => setValue("modoCriacao", "novo", { shouldDirty: true, shouldValidate: true })}
-        >
-          <p className="text-sm font-semibold">Novo caixa</p>
-          <p className="mt-1 text-xs opacity-80">
-            O ciclo comeca agora, no mes 1, com o grupo ainda sendo montado.
-          </p>
-        </button>
-        <button
-          type="button"
-          className={cn(
-            "rounded-2xl border px-4 py-3 text-left transition",
-            modoCriacao === "andamento"
-              ? "border-emerald-500 bg-emerald-50 text-emerald-950 dark:border-emerald-400 dark:bg-emerald-500/10 dark:text-emerald-100"
-              : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 dark:border-white/10 dark:bg-slate-950 dark:text-slate-200",
-          )}
-          onClick={() =>
-            setValue("modoCriacao", "andamento", { shouldDirty: true, shouldValidate: true })
-          }
-        >
-          <p className="text-sm font-semibold">Continuar caixa em andamento</p>
-          <p className="mt-1 text-xs opacity-80">
-            Ideal para quando o grupo ja existe fora do app e voce quer assumir o controle por aqui.
-          </p>
-        </button>
       </div>
 
       <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -356,44 +337,46 @@ export function CreateCaixaForm({
         </button>
       </form>
 
-      <details className="rounded-3xl border border-dashed border-slate-300 p-4 dark:border-white/10">
-        <summary className="cursor-pointer list-none text-sm font-medium text-slate-900 dark:text-white">
-          Restaurar caixa por JSON
-        </summary>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-          Use um backup exportado de outro caixa para recriar tudo com historico, membros, pagamentos e notas.
-        </p>
-        <div className="mt-3 space-y-3">
-          <input
-            type="file"
-            accept="application/json,.json"
-            className="block w-full text-sm text-slate-600 dark:text-slate-300"
-            onChange={handleBackupFileUpload}
-          />
-          <textarea
-            aria-label="JSON do backup"
-            aria-describedby="backup-json-help"
-            className="min-h-32 w-full rounded-2xl border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            placeholder="Cole aqui o JSON do backup"
-            value={backupJson}
-            onChange={(event) => setBackupJson(event.target.value)}
-          />
-          <p id="backup-json-help" className="text-xs text-slate-500 dark:text-slate-400">
-            Voce pode colar o conteudo do arquivo ou selecionar um JSON exportado.
+      {showBackupRestore ? (
+        <details className="rounded-3xl border border-dashed border-slate-300 p-4 dark:border-white/10">
+          <summary className="cursor-pointer list-none text-sm font-medium text-slate-900 dark:text-white">
+            Restaurar caixa por JSON
+          </summary>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            Use um backup exportado de outro caixa para recriar tudo com historico, membros, pagamentos e notas.
           </p>
-          <button
-            type="button"
-            className={cn(
-              "h-11 w-full rounded-lg border border-slate-300 bg-white text-slate-800 hover:bg-slate-50",
-              "disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800",
-            )}
-            disabled={restoringBackup}
-            onClick={handleRestoreBackup}
-          >
-            {restoringBackup ? "Restaurando backup..." : "Restaurar backup JSON"}
-          </button>
-        </div>
-      </details>
+          <div className="mt-3 space-y-3">
+            <input
+              type="file"
+              accept="application/json,.json"
+              className="block w-full text-sm text-slate-600 dark:text-slate-300"
+              onChange={handleBackupFileUpload}
+            />
+            <textarea
+              aria-label="JSON do backup"
+              aria-describedby="backup-json-help"
+              className="min-h-32 w-full rounded-2xl border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              placeholder="Cole aqui o JSON do backup"
+              value={backupJson}
+              onChange={(event) => setBackupJson(event.target.value)}
+            />
+            <p id="backup-json-help" className="text-xs text-slate-500 dark:text-slate-400">
+              Voce pode colar o conteudo do arquivo ou selecionar um JSON exportado.
+            </p>
+            <button
+              type="button"
+              className={cn(
+                "h-11 w-full rounded-lg border border-slate-300 bg-white text-slate-800 hover:bg-slate-50",
+                "disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800",
+              )}
+              disabled={restoringBackup}
+              onClick={handleRestoreBackup}
+            >
+              {restoringBackup ? "Restaurando backup..." : "Restaurar backup JSON"}
+            </button>
+          </div>
+        </details>
+      ) : null}
     </div>
   );
 }

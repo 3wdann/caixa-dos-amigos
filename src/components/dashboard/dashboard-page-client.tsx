@@ -29,6 +29,7 @@ export function DashboardPageClient() {
   const { user, profile, logout } = useAuth();
   const isOnline = useOnlineStatus();
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [continueModalOpen, setContinueModalOpen] = useState(false);
   const [managedCaixas, setManagedCaixas] = useState<CaixaResumo[]>([]);
   const [memberCaixas, setMemberCaixas] = useState<CaixaResumo[]>([]);
   const [pendingInvites, setPendingInvites] = useState<Convite[]>([]);
@@ -180,7 +181,7 @@ export function DashboardPageClient() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-end gap-3">
               <ThemeToggle />
               <Button
                 className="bg-emerald-700 text-white hover:bg-emerald-800"
@@ -188,6 +189,13 @@ export function DashboardPageClient() {
                 onClick={() => setCreateModalOpen(true)}
               >
                 Novo caixa
+              </Button>
+              <Button
+                variant="outline"
+                disabled={freeManagedLimitReached}
+                onClick={() => setContinueModalOpen(true)}
+              >
+                Continuar com caixa ja existente
               </Button>
               <Button variant="outline" onClick={() => logout()}>
                 Sair
@@ -351,8 +359,9 @@ export function DashboardPageClient() {
               </p>
               <p>
                 Use o botao <span className="font-medium">Novo caixa</span> para abrir seu primeiro
-                grupo. Quando voce receber convites ou participar de outros caixas, os blocos
-                aparecem aqui automaticamente.
+                grupo ou <span className="font-medium">Continuar com caixa ja existente</span> para
+                trazer um grupo que ja esta rodando fora do app. Quando voce receber convites ou
+                participar de outros caixas, os blocos aparecem aqui automaticamente.
               </p>
             </CardContent>
           </Card>
@@ -378,7 +387,40 @@ export function DashboardPageClient() {
                 <CreateCaixaForm
                   profile={profile}
                   userId={user.uid}
+                  mode="novo"
                   onSuccess={() => setCreateModalOpen(false)}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        ) : null}
+
+        {continueModalOpen ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-6 backdrop-blur-sm">
+            <Card className="max-h-[90vh] w-full max-w-2xl overflow-y-auto border-white/70 bg-white/95 shadow-2xl dark:border-white/10 dark:bg-slate-950/95">
+              <CardContent className="space-y-4 p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium uppercase tracking-[0.2em] text-sky-700 dark:text-sky-300">
+                      Continuar caixa
+                    </p>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">
+                      Use este fluxo quando o grupo ja existe fora do app e voce quer cadastrar o
+                      estagio atual dele por aqui.
+                    </p>
+                  </div>
+                  <Button variant="outline" onClick={() => setContinueModalOpen(false)}>
+                    Fechar
+                  </Button>
+                </div>
+                <CreateCaixaForm
+                  profile={profile}
+                  userId={user.uid}
+                  mode="andamento"
+                  title="Continuar com caixa ja existente"
+                  description="Informe os dados do grupo, em qual mes ele esta hoje e siga com os convites e pagamentos sem recomecar o ciclo."
+                  showBackupRestore={false}
+                  onSuccess={() => setContinueModalOpen(false)}
                 />
               </CardContent>
             </Card>

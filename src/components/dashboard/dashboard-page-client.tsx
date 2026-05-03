@@ -151,11 +151,11 @@ export function DashboardPageClient() {
     <main
       id="main-content"
       tabIndex={-1}
-      className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(13,148,136,0.20),_transparent_30%),linear-gradient(180deg,#fffdf8_0%,#f5efe5_100%)] dark:bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_22%),linear-gradient(180deg,#081311_0%,#111827_100%)]"
+      className="soft-app-shell"
     >
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
         {!isOnline ? <OfflineBanner /> : null}
-        <Card className="border-white/70 bg-white/85 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/75">
+        <Card className="rounded-[2.4rem] border-white/70 bg-white/82 dark:border-white/10 dark:bg-slate-950/72">
           <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               <Avatar className="h-12 w-12 border border-slate-200">
@@ -170,7 +170,7 @@ export function DashboardPageClient() {
                 <p className="text-sm text-slate-600 dark:text-slate-300">
                   Organize seus caixas e acompanhe o mes atual.
                 </p>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
+                <div className="mt-3 flex flex-wrap items-center gap-2">
                   <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">
                     Versao beta
                   </Badge>
@@ -184,7 +184,7 @@ export function DashboardPageClient() {
             <div className="flex flex-wrap items-center justify-end gap-3">
               <ThemeToggle />
               <Button
-                className="bg-emerald-700 text-white hover:bg-emerald-800"
+                className="bg-primary text-primary-foreground"
                 disabled={freeManagedLimitReached}
                 onClick={() => setCreateModalOpen(true)}
               >
@@ -204,37 +204,37 @@ export function DashboardPageClient() {
           </CardContent>
         </Card>
 
-        <Card className="border-white/70 bg-slate-950 text-white shadow-sm dark:border-white/10 dark:bg-slate-900/90">
+        <Card className="rounded-[2.4rem] border-white/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.78),rgba(226,249,246,0.72))] text-slate-950 dark:border-white/10 dark:bg-[linear-gradient(145deg,rgba(22,28,47,0.92),rgba(28,42,60,0.88))] dark:text-white">
           <CardContent className="space-y-4 p-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm uppercase tracking-[0.2em] text-emerald-200">Resumo rapido</p>
-              <p className="text-sm text-slate-300">
+              <p className="text-sm uppercase tracking-[0.2em] text-sky-700 dark:text-emerald-200">Resumo rapido</p>
+              <p className="text-sm text-slate-600 dark:text-slate-300">
                 Beta aberto para cadastros e testes controlados.
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-2xl bg-white/10 p-4">
-                <p className="text-sm text-slate-300">Gerencio</p>
+              <div className="rounded-[1.8rem] bg-white/60 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:bg-white/10">
+                <p className="text-sm text-slate-500 dark:text-slate-300">Gerencio</p>
                 <p className="mt-2 text-3xl font-semibold">{managedCaixas.length}</p>
-                <p className="mt-1 text-xs text-slate-400">Ativos: {activeManagedCaixas} de 2 no Free</p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Ativos: {activeManagedCaixas} de 2 no Free</p>
               </div>
-              <div className="rounded-2xl bg-white/10 p-4">
-                <p className="text-sm text-slate-300">Participo</p>
+              <div className="rounded-[1.8rem] bg-white/60 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:bg-white/10">
+                <p className="text-sm text-slate-500 dark:text-slate-300">Participo</p>
                 <p className="mt-2 text-3xl font-semibold">{memberCaixas.length}</p>
-                <p className="mt-1 text-xs text-slate-400">Ativos: {activeMemberCaixas} de 2 no Free</p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Ativos: {activeMemberCaixas} de 2 no Free</p>
               </div>
-              <div className="rounded-2xl bg-white/10 p-4">
-                <p className="text-sm text-slate-300">Convites pendentes</p>
+              <div className="rounded-[1.8rem] bg-white/60 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:bg-white/10">
+                <p className="text-sm text-slate-500 dark:text-slate-300">Convites pendentes</p>
                 <p className="mt-2 text-3xl font-semibold">{pendingInvites.length}</p>
-                <p className="mt-1 text-xs text-slate-400">Aguardando seu aceite</p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Aguardando seu aceite</p>
               </div>
-              <div className="rounded-2xl bg-white/10 p-4">
-                <p className="text-sm text-slate-300">Plano atual</p>
+              <div className="rounded-[1.8rem] bg-white/60 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:bg-white/10">
+                <p className="text-sm text-slate-500 dark:text-slate-300">Plano atual</p>
                 <p className="mt-2 text-3xl font-semibold">{getPlanoLabel(profile.plano)}</p>
-                <p className="mt-1 text-xs text-slate-400">Versao beta em validacao</p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Versao beta em validacao</p>
               </div>
             </div>
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
+            <div className="rounded-[1.8rem] border border-white/60 bg-white/45 p-4 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
               No plano Free, voce pode ter ate 2 caixas ativos como gerente e ate 2 caixas ativos como membro.
             </div>
           </CardContent>
@@ -302,10 +302,7 @@ export function DashboardPageClient() {
                 </div>
                 <div className="grid gap-4">
                   {pendingInvites.map((convite) => (
-                    <Card
-                      key={convite.token}
-                      className="border-amber-200 bg-amber-50/90 shadow-sm dark:border-amber-400/20 dark:bg-amber-500/10"
-                    >
+                    <Card key={convite.token} className="border-amber-200 bg-[linear-gradient(145deg,rgba(255,252,238,0.96),rgba(255,237,212,0.82))] dark:border-amber-400/20 dark:bg-amber-500/10">
                       <CardContent className="space-y-2 p-5">
                         <div className="flex items-center justify-between">
                           <p className="text-sm font-medium text-amber-900">Convite ativo</p>
@@ -352,7 +349,7 @@ export function DashboardPageClient() {
             ) : null}
           </div>
         ) : (
-          <Card className="border-dashed border-slate-300 bg-white/75 dark:border-slate-700 dark:bg-slate-950/70">
+          <Card className="border-dashed border-white/70 bg-white/82 dark:border-white/10 dark:bg-slate-950/72">
             <CardContent className="space-y-3 p-6 text-sm text-slate-600 dark:text-slate-300">
               <p className="font-medium text-slate-900 dark:text-white">
                 Seu painel esta pronto para comecar.
@@ -368,8 +365,8 @@ export function DashboardPageClient() {
         )}
 
         {createModalOpen ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-6 backdrop-blur-sm">
-            <Card className="max-h-[90vh] w-full max-w-2xl overflow-y-auto border-white/70 bg-white/95 shadow-2xl dark:border-white/10 dark:bg-slate-950/95">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 px-4 py-6 backdrop-blur-md">
+            <Card className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[2.4rem] border-white/70 bg-white/90 dark:border-white/10 dark:bg-slate-950/88">
               <CardContent className="space-y-4 p-6">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
@@ -396,8 +393,8 @@ export function DashboardPageClient() {
         ) : null}
 
         {continueModalOpen ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-6 backdrop-blur-sm">
-            <Card className="max-h-[90vh] w-full max-w-2xl overflow-y-auto border-white/70 bg-white/95 shadow-2xl dark:border-white/10 dark:bg-slate-950/95">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 px-4 py-6 backdrop-blur-md">
+            <Card className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[2.4rem] border-white/70 bg-white/90 dark:border-white/10 dark:bg-slate-950/88">
               <CardContent className="space-y-4 p-6">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">

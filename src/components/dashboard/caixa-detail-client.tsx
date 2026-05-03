@@ -937,7 +937,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
       <main
         id="main-content"
         tabIndex={-1}
-        className="min-h-screen bg-[linear-gradient(180deg,#fffdf8_0%,#f5efe5_100%)] px-4 py-8 dark:bg-[linear-gradient(180deg,#081311_0%,#111827_100%)]"
+        className="soft-app-shell px-4 py-8"
       >
         <div className="mx-auto max-w-2xl rounded-3xl border border-white/70 bg-white/90 p-8 text-center shadow-sm dark:border-white/10 dark:bg-slate-950/80">
           <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Acesso nao disponivel</h1>
@@ -959,7 +959,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
     <main
       id="main-content"
       tabIndex={-1}
-      className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(13,148,136,0.18),_transparent_30%),linear-gradient(180deg,#fffdf8_0%,#f5efe5_100%)] dark:bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_24%),linear-gradient(180deg,#081311_0%,#111827_100%)]"
+      className="soft-app-shell"
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
         {!isOnline ? (

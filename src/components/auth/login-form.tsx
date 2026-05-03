@@ -110,9 +110,9 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="border-0 bg-white/90 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur dark:bg-slate-950/80 dark:shadow-[0_24px_80px_rgba(2,6,23,0.45)]">
+    <Card className="rounded-[2.3rem] border-white/75 bg-white/82 dark:border-white/10 dark:bg-slate-950/72">
       <CardHeader className="space-y-2">
-        <CardTitle className="text-2xl text-slate-900 dark:text-white">Entrar</CardTitle>
+        <CardTitle className="text-3xl text-slate-900 dark:text-white">Entrar</CardTitle>
         <CardDescription className="text-sm text-slate-600 dark:text-slate-300">
           Acesse seus caixas com email e senha ou continue com Google.
         </CardDescription>
@@ -127,7 +127,7 @@ export function LoginForm() {
               placeholder="voce@exemplo.com"
               aria-describedby={errors.email ? "login-email-error" : "login-email-help"}
               aria-invalid={errors.email ? "true" : "false"}
-              className="flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex h-12 w-full rounded-[1.6rem] border border-white/70 bg-white/72 px-4 py-2 text-sm text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.82),0_10px_24px_rgba(91,102,131,0.08)] transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-white/10 dark:bg-white/8 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_24px_rgba(0,0,0,0.22)]"
               {...register("email")}
             />
             <p id="login-email-help" className="text-xs text-slate-500 dark:text-slate-400">
@@ -148,7 +148,7 @@ export function LoginForm() {
               placeholder="******"
               aria-describedby={errors.senha ? "login-senha-error" : "login-senha-help"}
               aria-invalid={errors.senha ? "true" : "false"}
-              className="flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex h-12 w-full rounded-[1.6rem] border border-white/70 bg-white/72 px-4 py-2 text-sm text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.82),0_10px_24px_rgba(91,102,131,0.08)] transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-white/10 dark:bg-white/8 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_24px_rgba(0,0,0,0.22)]"
               {...register("senha")}
             />
             <p id="login-senha-help" className="text-xs text-slate-500 dark:text-slate-400">
@@ -174,7 +174,7 @@ export function LoginForm() {
 
           <button
             type="submit"
-            className="h-11 w-full rounded-lg bg-emerald-700 text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-12 w-full rounded-full bg-primary text-primary-foreground shadow-[0_18px_40px_rgba(24,31,60,0.22)] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isSubmitting}
           >
             {isSubmitting ? "Entrando..." : "Entrar"}
@@ -183,7 +183,7 @@ export function LoginForm() {
 
         <button
           type="button"
-          className="h-11 w-full rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+          className="h-12 w-full rounded-full border border-white/70 bg-white/75 text-sm font-medium text-slate-700 shadow-[0_12px_28px_rgba(91,102,131,0.08)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15"
           onClick={handleGoogleSignIn}
           disabled={pendingGoogle}
         >

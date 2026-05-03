@@ -18,10 +18,10 @@ export default function Home() {
     <main
       id="main-content"
       tabIndex={-1}
-      className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(13,148,136,0.18),_transparent_26%),linear-gradient(180deg,#fffdf8_0%,#f5efe5_100%)] px-4 py-10 dark:bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_24%),linear-gradient(180deg,#081311_0%,#111827_100%)]"
+      className="soft-app-shell px-4 py-8 sm:py-10"
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-10">
-        <div className="flex items-center justify-between rounded-full border border-white/70 bg-white/75 px-5 py-3 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/70">
+        <div className="soft-panel flex flex-col gap-4 rounded-[2.5rem] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold tracking-[0.2em] text-emerald-700 dark:text-emerald-300">
               CAIXA DOS AMIGOS
@@ -50,10 +50,7 @@ export default function Home() {
                     </p>
                   </div>
                 </div>
-                <Link
-                  className="inline-flex rounded-full bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
-                  href="/painel"
-                >
+                <Link className="inline-flex rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground" href="/painel">
                   Ir para o painel
                 </Link>
                 <Button variant="outline" onClick={() => logout()}>
@@ -81,7 +78,7 @@ export default function Home() {
           aria-labelledby="home-title"
         >
           <div className="space-y-6">
-            <div className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-200">
+            <div className="inline-flex rounded-full border border-white/70 bg-white/70 px-4 py-2 text-sm font-medium text-slate-800 shadow-[0_10px_24px_rgba(91,102,131,0.08)] dark:border-white/10 dark:bg-white/10 dark:text-white">
               Fase 1 do MVP
             </div>
             <div className="space-y-4">
@@ -97,7 +94,7 @@ export default function Home() {
               </p>
             </div>
             {isLoggedIn && profile ? (
-              <div className="rounded-[1.75rem] border border-white/70 bg-white/90 p-5 shadow-sm dark:border-white/10 dark:bg-slate-950/75">
+              <div className="soft-panel rounded-[2rem] p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
@@ -120,7 +117,7 @@ export default function Home() {
                   </div>
                   <Link
                     href="/painel"
-                    className="inline-flex h-12 items-center justify-center rounded-2xl bg-emerald-700 px-6 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-800"
+                    className="inline-flex h-12 items-center justify-center rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground shadow-[0_18px_40px_rgba(24,31,60,0.22)] transition hover:-translate-y-0.5"
                   >
                     Continuar no painel
                   </Link>
@@ -130,13 +127,13 @@ export default function Home() {
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Link
                   href="/cadastro"
-                  className="inline-flex h-12 items-center justify-center rounded-2xl bg-emerald-700 px-6 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-800"
+                  className="inline-flex h-12 items-center justify-center rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground shadow-[0_18px_40px_rgba(24,31,60,0.22)] transition hover:-translate-y-0.5"
                 >
                   Criar minha conta
                 </Link>
                 <Link
                   href="/login"
-                  className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-6 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100 dark:hover:bg-slate-900"
+                  className="inline-flex h-12 items-center justify-center rounded-full border border-white/70 bg-white/75 px-6 text-sm font-medium text-slate-700 shadow-[0_12px_28px_rgba(91,102,131,0.08)] transition hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/10 dark:text-slate-100"
                 >
                   Ja tenho acesso
                 </Link>
@@ -153,7 +150,7 @@ export default function Home() {
             ].map((item) => (
               <div
                 key={item}
-                className="rounded-[1.75rem] border border-white/70 bg-white/90 p-5 shadow-sm dark:border-white/10 dark:bg-slate-950/75"
+                className="soft-panel rounded-[2rem] p-5"
               >
                 <p className="text-sm leading-6 text-slate-700 dark:text-slate-200">{item}</p>
               </div>

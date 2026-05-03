@@ -30,7 +30,7 @@ export function CaixaCard({
 }) {
   return (
     <Card
-      className={`border-white/70 bg-white/90 shadow-sm transition-transform hover:-translate-y-0.5 dark:border-white/10 dark:bg-slate-950/80 ${
+      className={`border-white/70 bg-white/82 shadow-[0_24px_70px_rgba(91,102,131,0.12),inset_0_1px_0_rgba(255,255,255,0.78)] transition-transform hover:-translate-y-1 hover:shadow-[0_30px_90px_rgba(91,102,131,0.16),inset_0_1px_0_rgba(255,255,255,0.78)] dark:border-white/10 dark:bg-slate-950/72 ${
         highlight ? "ring-2 ring-amber-300" : ""
       }`}
     >
@@ -51,7 +51,7 @@ export function CaixaCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/10 dark:bg-slate-900/80">
+        <div className="rounded-[1.5rem] border border-white/70 bg-white/70 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-white/10 dark:bg-white/5">
           <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
             ID do caixa
           </p>
@@ -84,7 +84,7 @@ export function CaixaCard({
       <CardFooter>
         <Link
           href={href}
-          className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+          className="inline-flex h-12 w-full items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground shadow-[0_18px_40px_rgba(24,31,60,0.22)] transition hover:-translate-y-0.5"
         >
           Abrir detalhes
         </Link>

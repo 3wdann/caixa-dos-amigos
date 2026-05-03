@@ -8,12 +8,12 @@ export default function CadastroPage() {
       <main
         id="main-content"
         tabIndex={-1}
-        className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(249,115,22,0.16),_transparent_28%),linear-gradient(180deg,#fffdf8_0%,#f5efe5_100%)] px-4 py-10 dark:bg-[radial-gradient(circle_at_top,_rgba(249,115,22,0.16),_transparent_24%),linear-gradient(180deg,#14110c_0%,#111827_100%)]"
+        className="soft-app-shell px-4 py-8 sm:py-10"
       >
         <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1fr_1fr] lg:items-center">
           <section className="space-y-6" aria-labelledby="cadastro-title">
             <div className="flex items-center justify-between gap-4">
-              <div className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-800 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-200">
+              <div className="inline-flex rounded-full border border-white/70 bg-white/70 px-4 py-2 text-sm font-medium text-slate-800 shadow-[0_10px_24px_rgba(91,102,131,0.08)] dark:border-white/10 dark:bg-white/10 dark:text-white">
                 Comece por aqui
               </div>
               <ThemeToggle />

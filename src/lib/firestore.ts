@@ -21,7 +21,7 @@ import {
 
 import { colorFromSeed, initialsFromName } from "@/lib/avatar";
 import { db } from "@/lib/firebase";
-import { canCreateActiveCaixa } from "@/lib/plano";
+import { canCreateActiveCaixa, canJoinActiveCaixa } from "@/lib/plano";
 import type {
   Caixa,
   CaixaBackupPayload,
@@ -75,6 +75,26 @@ function timestampToIso(value: Timestamp | null | undefined) {
 
 function isoToTimestamp(value: string | null | undefined) {
   return value ? Timestamp.fromDate(new Date(value)) : null;
+}
+
+async function countActiveCaixasFromPainelIndex(
+  userId: string,
+  key: "gerencia" | "participa",
+) {
+  const painelSnapshot = await getDoc(doc(db, "painel_index", userId));
+  const caixaIds = ((painelSnapshot.data()?.[key] as string[] | undefined) ?? []).filter(Boolean);
+
+  if (caixaIds.length === 0) {
+    return 0;
+  }
+
+  const caixasSnapshots = await Promise.all(
+    caixaIds.map((caixaId) => getDoc(doc(db, "caixas", caixaId))),
+  );
+
+  return caixasSnapshots.filter(
+    (snapshot) => snapshot.exists() && (snapshot.data() as Caixa).status === "ativo",
+  ).length;
 }
 
 export async function ensureUserProfile(user: User, nome?: string) {
@@ -139,11 +159,12 @@ export async function createCaixa(
   profile: UserProfile,
   gerenteId: string,
 ) {
-  const limit = canCreateActiveCaixa(profile.plano, 0);
+  const activeManagedCaixas = await countActiveCaixasFromPainelIndex(gerenteId, "gerencia");
+  const limit = canCreateActiveCaixa(profile.plano, activeManagedCaixas);
 
   if (!limit.allowed) {
     throw new Error(
-      "Seu plano Free permite apenas 1 caixa ativo. Encerre o atual ou faca upgrade para Pro.",
+      "Seu plano Free permite ate 2 caixas ativos como gerente. Encerre um caixa ou faca upgrade para Pro.",
     );
   }
 
@@ -553,6 +574,15 @@ export async function acceptInvite(token: string, user: User, profile: UserProfi
 
   if (!totalMeses) {
     throw new Error("Esse convite esta incompleto. Gere um novo link e tente novamente.");
+  }
+
+  const activeMemberCaixas = await countActiveCaixasFromPainelIndex(user.uid, "participa");
+  const memberLimit = canJoinActiveCaixa(profile.plano, activeMemberCaixas);
+
+  if (!memberLimit.allowed) {
+    throw new Error(
+      "Seu plano Free permite ate 2 caixas ativos como membro. Saia de um caixa ativo ou faca upgrade para Pro.",
+    );
   }
 
   const memberRef = doc(db, "caixas", invite.caixaId, "membros", normalizedEmail);
@@ -1092,11 +1122,12 @@ export async function restoreCaixaFromBackup(
   profile: UserProfile,
   gerenteId: string,
 ) {
-  const limit = canCreateActiveCaixa(profile.plano, 0);
+  const activeManagedCaixas = await countActiveCaixasFromPainelIndex(gerenteId, "gerencia");
+  const limit = canCreateActiveCaixa(profile.plano, activeManagedCaixas);
 
   if (!limit.allowed) {
     throw new Error(
-      "Seu plano Free permite apenas 1 caixa ativo. Encerre o atual ou faca upgrade para Pro.",
+      "Seu plano Free permite ate 2 caixas ativos como gerente. Encerre um caixa ou faca upgrade para Pro.",
     );
   }
 

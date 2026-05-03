@@ -5,9 +5,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { createCaixa, restoreCaixaFromBackup } from "@/lib/firestore";
+import { cn } from "@/lib/utils";
 import type { CaixaBackupPayload, UserProfile } from "@/lib/types";
 import {
   createCaixaSchema,
@@ -40,9 +40,11 @@ function buildSuggestion(valorMensal: number, totalMeses: number) {
 export function CreateCaixaForm({
   profile,
   userId,
+  onSuccess,
 }: {
   profile: UserProfile;
   userId: string;
+  onSuccess?: () => void;
 }) {
   const [backupJson, setBackupJson] = useState("");
   const [restoringBackup, setRestoringBackup] = useState(false);
@@ -80,6 +82,7 @@ export function CreateCaixaForm({
           detail: createdCaixa,
         }),
       );
+      onSuccess?.();
       reset({
         nome: "",
         descricao: "",
@@ -131,14 +134,13 @@ export function CreateCaixaForm({
   }
 
   return (
-    <Card className="border-white/70 bg-white/90 shadow-sm dark:border-white/10 dark:bg-slate-950/80">
-      <CardHeader>
-        <CardTitle className="text-slate-900 dark:text-white">Criar novo caixa</CardTitle>
-        <CardDescription>
+    <div className="space-y-4">
+      <div className="space-y-1">
+        <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">Criar novo caixa</h2>
+        <p className="text-sm text-slate-600 dark:text-slate-300">
           Defina nome, valor mensal, quantidade de membros e a data de inicio.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        </p>
+      </div>
         <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
           <div className="space-y-2">
             <Label htmlFor="nome">Nome do caixa</Label>
@@ -261,9 +263,11 @@ export function CreateCaixaForm({
           </button>
         </form>
 
-        <div className="rounded-3xl border border-dashed border-slate-300 p-4 dark:border-white/10">
-          <p className="text-sm font-medium text-slate-900 dark:text-white">Restaurar caixa por JSON</p>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+        <details className="rounded-3xl border border-dashed border-slate-300 p-4 dark:border-white/10">
+          <summary className="cursor-pointer list-none text-sm font-medium text-slate-900 dark:text-white">
+            Restaurar caixa por JSON
+          </summary>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
             Use um backup exportado de outro caixa para recriar tudo com historico, membros, pagamentos e notas.
           </p>
           <div className="mt-3 space-y-3">
@@ -286,15 +290,17 @@ export function CreateCaixaForm({
             </p>
             <button
               type="button"
-              className="h-11 w-full rounded-lg border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+              className={cn(
+                "h-11 w-full rounded-lg border border-slate-300 bg-white text-slate-800 hover:bg-slate-50",
+                "disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800",
+              )}
               disabled={restoringBackup}
               onClick={handleRestoreBackup}
             >
               {restoringBackup ? "Restaurando backup..." : "Restaurar backup JSON"}
             </button>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </details>
+    </div>
   );
 }

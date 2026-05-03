@@ -28,11 +28,15 @@ import type { CaixaResumo, Convite } from "@/lib/types";
 export function DashboardPageClient() {
   const { user, profile, logout } = useAuth();
   const isOnline = useOnlineStatus();
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [managedCaixas, setManagedCaixas] = useState<CaixaResumo[]>([]);
   const [memberCaixas, setMemberCaixas] = useState<CaixaResumo[]>([]);
   const [pendingInvites, setPendingInvites] = useState<Convite[]>([]);
   const [joiningInviteToken, setJoiningInviteToken] = useState<string | null>(null);
   const [cacheReady, setCacheReady] = useState(false);
+  const activeManagedCaixas = managedCaixas.filter((caixa) => caixa.status === "ativo").length;
+  const activeMemberCaixas = memberCaixas.filter((caixa) => caixa.status === "ativo").length;
+  const freeManagedLimitReached = profile?.plano === "free" && activeManagedCaixas >= 2;
 
   useEffect(() => {
     async function loadCache() {
@@ -161,14 +165,26 @@ export function DashboardPageClient() {
                 <p className="text-sm text-slate-600 dark:text-slate-300">
                   Organize seus caixas e acompanhe o mes atual.
                 </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">
+                    Versao beta
+                  </Badge>
+                  <Badge className="bg-emerald-100 text-emerald-900 hover:bg-emerald-100">
+                    Plano {getPlanoLabel(profile.plano)}
+                  </Badge>
+                </div>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
               <ThemeToggle />
-              <Badge className="bg-emerald-100 text-emerald-900 hover:bg-emerald-100">
-                Plano {getPlanoLabel(profile.plano)}
-              </Badge>
+              <Button
+                className="bg-emerald-700 text-white hover:bg-emerald-800"
+                disabled={freeManagedLimitReached}
+                onClick={() => setCreateModalOpen(true)}
+              >
+                Novo caixa
+              </Button>
               <Button variant="outline" onClick={() => logout()}>
                 Sair
               </Button>
@@ -176,29 +192,41 @@ export function DashboardPageClient() {
           </CardContent>
         </Card>
 
-        <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <CreateCaixaForm profile={profile} userId={user.uid} />
-
-          <Card className="border-white/70 bg-slate-950 text-white shadow-sm dark:border-white/10 dark:bg-slate-900/90">
-            <CardContent className="space-y-4 p-6">
+        <Card className="border-white/70 bg-slate-950 text-white shadow-sm dark:border-white/10 dark:bg-slate-900/90">
+          <CardContent className="space-y-4 p-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm uppercase tracking-[0.2em] text-emerald-200">Resumo rapido</p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-2xl bg-white/10 p-4">
-                  <p className="text-sm text-slate-300">Caixas que gerencio</p>
-                  <p className="mt-2 text-3xl font-semibold">{managedCaixas.length}</p>
-                </div>
-                <div className="rounded-2xl bg-white/10 p-4">
-                  <p className="text-sm text-slate-300">Caixas em que participo</p>
-                  <p className="mt-2 text-3xl font-semibold">{memberCaixas.length}</p>
-                </div>
+              <p className="text-sm text-slate-300">
+                Beta aberto para cadastros e testes controlados.
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-2xl bg-white/10 p-4">
+                <p className="text-sm text-slate-300">Gerencio</p>
+                <p className="mt-2 text-3xl font-semibold">{managedCaixas.length}</p>
+                <p className="mt-1 text-xs text-slate-400">Ativos: {activeManagedCaixas} de 2 no Free</p>
               </div>
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
-                No plano Free voce pode ter 1 caixa ativo como gerente. Participar como membro e
-                ilimitado.
+              <div className="rounded-2xl bg-white/10 p-4">
+                <p className="text-sm text-slate-300">Participo</p>
+                <p className="mt-2 text-3xl font-semibold">{memberCaixas.length}</p>
+                <p className="mt-1 text-xs text-slate-400">Ativos: {activeMemberCaixas} de 2 no Free</p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              <div className="rounded-2xl bg-white/10 p-4">
+                <p className="text-sm text-slate-300">Convites pendentes</p>
+                <p className="mt-2 text-3xl font-semibold">{pendingInvites.length}</p>
+                <p className="mt-1 text-xs text-slate-400">Aguardando seu aceite</p>
+              </div>
+              <div className="rounded-2xl bg-white/10 p-4">
+                <p className="text-sm text-slate-300">Plano atual</p>
+                <p className="mt-2 text-3xl font-semibold">{getPlanoLabel(profile.plano)}</p>
+                <p className="mt-1 text-xs text-slate-400">Versao beta em validacao</p>
+              </div>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
+              No plano Free, voce pode ter ate 2 caixas ativos como gerente e ate 2 caixas ativos como membro.
+            </div>
+          </CardContent>
+        </Card>
 
         <section className="space-y-4" aria-labelledby="managed-caixas-title">
           <div className="flex items-center justify-between">
@@ -210,7 +238,7 @@ export function DashboardPageClient() {
           {managedCaixas.length === 0 ? (
             <Card className="border-dashed border-slate-300 bg-white/75 dark:border-slate-700 dark:bg-slate-950/70">
               <CardContent className="p-6 text-sm text-slate-600 dark:text-slate-300">
-                Voce ainda nao criou nenhum caixa. Use o formulario acima para abrir o primeiro.
+                Voce ainda nao criou nenhum caixa. Use o botao &quot;Novo caixa&quot; para abrir o primeiro.
               </CardContent>
             </Card>
           ) : (
@@ -311,6 +339,33 @@ export function DashboardPageClient() {
             </div>
           )}
         </section>
+
+        {createModalOpen ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-6 backdrop-blur-sm">
+            <Card className="max-h-[90vh] w-full max-w-2xl overflow-y-auto border-white/70 bg-white/95 shadow-2xl dark:border-white/10 dark:bg-slate-950/95">
+              <CardContent className="space-y-4 p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300">
+                      Novo caixa
+                    </p>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">
+                      Crie um caixa novo sem sair do painel.
+                    </p>
+                  </div>
+                  <Button variant="outline" onClick={() => setCreateModalOpen(false)}>
+                    Fechar
+                  </Button>
+                </div>
+                <CreateCaixaForm
+                  profile={profile}
+                  userId={user.uid}
+                  onSuccess={() => setCreateModalOpen(false)}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        ) : null}
       </div>
     </main>
   );

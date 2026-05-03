@@ -37,6 +37,10 @@ export function DashboardPageClient() {
   const activeManagedCaixas = managedCaixas.filter((caixa) => caixa.status === "ativo").length;
   const activeMemberCaixas = memberCaixas.filter((caixa) => caixa.status === "ativo").length;
   const freeManagedLimitReached = profile?.plano === "free" && activeManagedCaixas >= 2;
+  const hasManagedCaixas = managedCaixas.length > 0;
+  const hasMemberCaixas = memberCaixas.length > 0;
+  const hasPendingInvites = pendingInvites.length > 0;
+  const hasDashboardSections = hasManagedCaixas || hasMemberCaixas || hasPendingInvites;
 
   useEffect(() => {
     async function loadCache() {
@@ -228,117 +232,131 @@ export function DashboardPageClient() {
           </CardContent>
         </Card>
 
-        <section className="space-y-4" aria-labelledby="managed-caixas-title">
-          <div className="flex items-center justify-between">
-            <h2 id="managed-caixas-title" className="text-xl font-semibold text-slate-900 dark:text-white">
-              Caixas que gerencio
-            </h2>
-            <span className="text-sm text-slate-500 dark:text-slate-400">Visao do gerente</span>
-          </div>
-          {managedCaixas.length === 0 ? (
-            <Card className="border-dashed border-slate-300 bg-white/75 dark:border-slate-700 dark:bg-slate-950/70">
-              <CardContent className="p-6 text-sm text-slate-600 dark:text-slate-300">
-                Voce ainda nao criou nenhum caixa. Use o botao &quot;Novo caixa&quot; para abrir o primeiro.
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {managedCaixas.map((caixa) => (
-                <CaixaCard key={caixa.id} caixa={caixa} href={`/painel/caixas/${caixa.id}`} />
-              ))}
-            </div>
-          )}
-        </section>
+        {hasDashboardSections ? (
+          <div className="grid gap-6 xl:grid-cols-2">
+            {hasManagedCaixas ? (
+              <section className="space-y-4 xl:col-span-2" aria-labelledby="managed-caixas-title">
+                <div className="flex items-center justify-between">
+                  <h2
+                    id="managed-caixas-title"
+                    className="text-xl font-semibold text-slate-900 dark:text-white"
+                  >
+                    Caixas que gerencio
+                  </h2>
+                  <span className="text-sm text-slate-500 dark:text-slate-400">
+                    Visao do gerente
+                  </span>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {managedCaixas.map((caixa) => (
+                    <CaixaCard key={caixa.id} caixa={caixa} href={`/painel/caixas/${caixa.id}`} />
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
-        <section className="space-y-4" aria-labelledby="member-caixas-title">
-          <div className="flex items-center justify-between">
-            <h2 id="member-caixas-title" className="text-xl font-semibold text-slate-900 dark:text-white">
-              Caixas que participo
-            </h2>
-            <span className="text-sm text-slate-500 dark:text-slate-400">Visao do membro</span>
-          </div>
-          {memberCaixas.length === 0 ? (
-            <Card className="border-dashed border-slate-300 bg-white/75 dark:border-slate-700 dark:bg-slate-950/70">
-              <CardContent className="p-6 text-sm text-slate-600 dark:text-slate-300">
-                Quando um gerente te convidar por email e voce aceitar, seus caixas aparecem aqui.
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {memberCaixas.map((caixa) => (
-                <CaixaCard
-                  key={caixa.id}
-                  caixa={caixa}
-                  href={`/painel/caixas/${caixa.id}`}
-                  highlight={caixa.meuStatusNoMes === "pendente"}
-                />
-              ))}
-            </div>
-          )}
-        </section>
+            {hasMemberCaixas ? (
+              <section className="space-y-4" aria-labelledby="member-caixas-title">
+                <div className="flex items-center justify-between">
+                  <h2
+                    id="member-caixas-title"
+                    className="text-xl font-semibold text-slate-900 dark:text-white"
+                  >
+                    Caixas que participo
+                  </h2>
+                  <span className="text-sm text-slate-500 dark:text-slate-400">
+                    Visao do membro
+                  </span>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
+                  {memberCaixas.map((caixa) => (
+                    <CaixaCard
+                      key={caixa.id}
+                      caixa={caixa}
+                      href={`/painel/caixas/${caixa.id}`}
+                      highlight={caixa.meuStatusNoMes === "pendente"}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
-        <section className="space-y-4" aria-labelledby="pending-invites-title">
-          <div className="flex items-center justify-between">
-            <h2 id="pending-invites-title" className="text-xl font-semibold text-slate-900 dark:text-white">
-              Convites pendentes
-            </h2>
-            <span className="text-sm text-slate-500 dark:text-slate-400">Por email</span>
+            {hasPendingInvites ? (
+              <section className="space-y-4" aria-labelledby="pending-invites-title">
+                <div className="flex items-center justify-between">
+                  <h2
+                    id="pending-invites-title"
+                    className="text-xl font-semibold text-slate-900 dark:text-white"
+                  >
+                    Convites pendentes
+                  </h2>
+                  <span className="text-sm text-slate-500 dark:text-slate-400">Por email</span>
+                </div>
+                <div className="grid gap-4">
+                  {pendingInvites.map((convite) => (
+                    <Card
+                      key={convite.token}
+                      className="border-amber-200 bg-amber-50/90 shadow-sm dark:border-amber-400/20 dark:bg-amber-500/10"
+                    >
+                      <CardContent className="space-y-2 p-5">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-amber-900">Convite ativo</p>
+                          <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">
+                            aguardando entrada
+                          </Badge>
+                        </div>
+                        <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                          Caixa: {convite.caixaNome ?? convite.caixaId}
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-300">
+                          Gerente: {convite.gerenteNome ?? "Gerente do caixa"}
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-300">
+                          Valor por membro: R$ {(convite.valorMensal ?? 0).toFixed(2)}
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-300">
+                          Seu email ja foi reconhecido. Aceite o convite para entrar no caixa ou abra
+                          a landing para revisar os detalhes antes.
+                        </p>
+                        <div className="flex flex-col gap-2 pt-2 sm:flex-row">
+                          <button
+                            type="button"
+                            className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                            disabled={joiningInviteToken === convite.token}
+                            onClick={() => handleAcceptPendingInvite(convite.token)}
+                          >
+                            {joiningInviteToken === convite.token
+                              ? "Entrando..."
+                              : "Entrar nesse caixa"}
+                          </button>
+                          <Link
+                            href={`/entrar?convite=${convite.token}`}
+                            className="inline-flex h-10 items-center justify-center rounded-xl border border-amber-300 bg-white px-4 text-sm font-medium text-amber-900 transition hover:bg-amber-100"
+                          >
+                            Ver convite
+                          </Link>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </section>
+            ) : null}
           </div>
-          {pendingInvites.length === 0 ? (
-            <Card className="border-dashed border-slate-300 bg-white/75 dark:border-slate-700 dark:bg-slate-950/70">
-              <CardContent className="p-6 text-sm text-slate-600 dark:text-slate-300">
-                Quando alguem te convidar por email antes da entrada no caixa, o convite aparece
-                aqui.
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {pendingInvites.map((convite) => (
-                <Card key={convite.token} className="border-amber-200 bg-amber-50/90 shadow-sm dark:border-amber-400/20 dark:bg-amber-500/10">
-                  <CardContent className="space-y-2 p-5">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-amber-900">Convite ativo</p>
-                      <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">
-                        aguardando entrada
-                      </Badge>
-                    </div>
-                    <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                      Caixa: {convite.caixaNome ?? convite.caixaId}
-                    </p>
-                    <p className="text-sm text-slate-600 dark:text-slate-300">
-                      Gerente: {convite.gerenteNome ?? "Gerente do caixa"}
-                    </p>
-                    <p className="text-sm text-slate-600 dark:text-slate-300">
-                      Valor por membro: R$ {(convite.valorMensal ?? 0).toFixed(2)}
-                    </p>
-                    <p className="text-sm text-slate-600 dark:text-slate-300">
-                      Seu email ja foi reconhecido. Aceite o convite para entrar no caixa ou abra
-                      a landing para revisar os detalhes antes.
-                    </p>
-                    <div className="flex flex-col gap-2 pt-2 sm:flex-row">
-                      <button
-                        type="button"
-                        className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-                        disabled={joiningInviteToken === convite.token}
-                        onClick={() => handleAcceptPendingInvite(convite.token)}
-                      >
-                        {joiningInviteToken === convite.token
-                          ? "Entrando..."
-                          : "Entrar nesse caixa"}
-                      </button>
-                      <Link
-                        href={`/entrar?convite=${convite.token}`}
-                        className="inline-flex h-10 items-center justify-center rounded-xl border border-amber-300 bg-white px-4 text-sm font-medium text-amber-900 transition hover:bg-amber-100"
-                      >
-                        Ver convite
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </section>
+        ) : (
+          <Card className="border-dashed border-slate-300 bg-white/75 dark:border-slate-700 dark:bg-slate-950/70">
+            <CardContent className="space-y-3 p-6 text-sm text-slate-600 dark:text-slate-300">
+              <p className="font-medium text-slate-900 dark:text-white">
+                Seu painel esta pronto para comecar.
+              </p>
+              <p>
+                Use o botao <span className="font-medium">Novo caixa</span> para abrir seu primeiro
+                grupo. Quando voce receber convites ou participar de outros caixas, os blocos
+                aparecem aqui automaticamente.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {createModalOpen ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-6 backdrop-blur-sm">

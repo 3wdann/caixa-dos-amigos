@@ -121,6 +121,8 @@ export interface CreateCaixaInput {
   valorMensal: number;
   totalMeses: number;
   dataInicio: string;
+  modoCriacao: "novo" | "andamento";
+  mesAtual: number;
 }
 
 export interface CaixaBackupPayload {

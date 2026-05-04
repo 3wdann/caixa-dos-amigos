@@ -35,7 +35,7 @@ export function AddMemberForm({ caixaId }: { caixaId: string }) {
   }
 
   return (
-    <form className="space-y-3" onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
       <div className="space-y-2">
         <Label htmlFor="membro-email">Adicionar membro por email</Label>
         <input
@@ -44,10 +44,10 @@ export function AddMemberForm({ caixaId }: { caixaId: string }) {
           placeholder="amigo@exemplo.com"
           aria-describedby={errors.email ? "membro-email-error" : "membro-email-help"}
           aria-invalid={errors.email ? "true" : "false"}
-          className="flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex h-12 w-full rounded-[1.2rem] border border-[#dbe7df] bg-white px-4 py-2 text-sm text-[#13231C] shadow-sm transition-colors placeholder:text-[#8a988f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7258]"
           {...register("email")}
         />
-        <p id="membro-email-help" className="text-xs text-slate-500 dark:text-slate-400">
+        <p id="membro-email-help" className="text-xs text-[#657469] dark:text-slate-400">
           O convite sera enviado para este email e a entrada so acontece apos o aceite.
         </p>
         {errors.email ? (
@@ -58,7 +58,7 @@ export function AddMemberForm({ caixaId }: { caixaId: string }) {
       </div>
       <button
         type="submit"
-        className="h-10 rounded-lg bg-slate-900 px-4 text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+        className="h-11 rounded-full bg-[#214F3F] px-5 text-white shadow-[0_14px_32px_rgba(33,79,63,0.18)] transition hover:bg-[#183b2f] disabled:cursor-not-allowed disabled:opacity-50"
         disabled={isSubmitting}
       >
         {isSubmitting ? "Adicionando..." : "Adicionar membro"}

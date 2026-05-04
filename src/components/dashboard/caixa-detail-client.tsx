@@ -65,13 +65,13 @@ import type {
 function statusTone(status?: CaixaPagamento["status"]) {
   switch (status) {
     case "confirmado":
-      return "bg-emerald-100 text-emerald-900";
+      return "bg-[#E2F3E7] text-[#214F3F]";
     case "rejeitado":
-      return "bg-red-100 text-red-900";
+      return "bg-[#fde2db] text-[#a24834]";
     case "pendente":
-      return "bg-amber-100 text-amber-900";
+      return "bg-[#fff4d8] text-[#8B6A11]";
     default:
-      return "bg-slate-100 text-slate-700";
+      return "bg-[#eff4ef] text-[#657469]";
   }
 }
 
@@ -959,83 +959,83 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
     <main
       id="main-content"
       tabIndex={-1}
-      className="soft-app-shell"
+      className="brand-shell"
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
         {!isOnline ? (
           <OfflineBanner message="Voce esta offline. Exibindo a ultima versao salva deste caixa." />
         ) : null}
-        <div className="flex flex-col gap-4 rounded-[2rem] border border-white/70 bg-white/85 p-6 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/75 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-4 rounded-[2rem] border border-[#dbe7df] bg-white p-6 shadow-[0_22px_54px_rgba(33,79,63,0.08)] dark:border-white/10 dark:bg-slate-950/75 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
-            <Link href="/painel" className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+            <Link href="/painel" className="text-sm font-medium text-[#2F7258] dark:text-emerald-300">
               Voltar ao painel
             </Link>
-            <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">{caixa.nome}</h1>
-            <p className="max-w-2xl text-sm text-slate-600 dark:text-slate-300">
+            <h1 className="text-3xl font-semibold text-[#13231C] dark:text-white">{caixa.nome}</h1>
+            <p className="max-w-2xl text-sm text-[#657469] dark:text-slate-300">
               {caixa.descricao || "Sem descricao para este caixa."}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <ThemeToggle />
-            <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">
+            <Badge className="bg-[#fff4d8] text-[#8B6A11] hover:bg-[#fff4d8]">
               Mes {caixa.mesAtual}
             </Badge>
-            <Badge className="bg-slate-100 text-slate-800 hover:bg-slate-100">
+            <Badge className="bg-[#eff4ef] text-[#214F3F] hover:bg-[#eff4ef]">
               {caixa.status}
             </Badge>
-            <Badge className="bg-emerald-100 text-emerald-900 hover:bg-emerald-100">
+            <Badge className="bg-[#E2F3E7] text-[#214F3F] hover:bg-[#E2F3E7]">
               R$ {caixa.valorMensal.toFixed(2)} por membro
             </Badge>
           </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-          <Card className="border-white/70 bg-white/90 shadow-sm dark:border-white/10 dark:bg-slate-950/80">
+          <Card className="border-[#dbe7df] bg-white shadow-[0_20px_48px_rgba(33,79,63,0.08)] dark:border-white/10 dark:bg-slate-950/80">
             <CardHeader>
-              <CardTitle className="text-slate-900 dark:text-white">Resumo do mes atual</CardTitle>
+              <CardTitle className="text-[#13231C] dark:text-white">Resumo do mes atual</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/80">
-                  <p className="text-sm text-slate-500">ID unico do caixa</p>
-                  <p className="mt-2 break-all font-mono text-sm font-semibold text-slate-900 dark:text-white">
+                <div className="rounded-[1.5rem] border border-[#dbe7df] bg-[#f9fbf9] p-4 dark:border-white/10 dark:bg-slate-900/80">
+                  <p className="text-sm text-[#657469]">ID unico do caixa</p>
+                  <p className="mt-2 break-all font-mono text-sm font-semibold text-[#13231C] dark:text-white">
                     {caixa.id}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                  <p className="text-sm text-emerald-700">Gerente do caixa</p>
-                  <p className="mt-2 text-base font-semibold text-emerald-950">
+                <div className="rounded-[1.5rem] border border-[#cfe4d5] bg-[#E2F3E7] p-4">
+                  <p className="text-sm text-[#2F7258]">Gerente do caixa</p>
+                  <p className="mt-2 text-base font-semibold text-[#13231C]">
                     {managerProfile?.nome ?? "Gerente nao identificado"}
                   </p>
-                  <p className="mt-1 break-all text-sm text-emerald-800">
+                  <p className="mt-1 break-all text-sm text-[#2F7258]">
                     {managerProfile?.email ?? caixa.gerenteEmail ?? "Email indisponivel"}
                   </p>
                 </div>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-900/80">
-                  <p className="text-sm text-slate-500">Total por ponto</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">
+                <div className="rounded-[1.5rem] bg-[#f9fbf9] p-4 dark:bg-slate-900/80">
+                  <p className="text-sm text-[#657469]">Total por ponto</p>
+                  <p className="mt-2 text-2xl font-semibold text-[#13231C] dark:text-white">
                     R$ {caixa.totalPorMes.toFixed(2)}
                   </p>
                 </div>
-                <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-900/80">
-                  <p className="text-sm text-slate-500">Membros ativos</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">
+                <div className="rounded-[1.5rem] bg-[#f9fbf9] p-4 dark:bg-slate-900/80">
+                  <p className="text-sm text-[#657469]">Membros ativos</p>
+                  <p className="mt-2 text-2xl font-semibold text-[#13231C] dark:text-white">
                     {membros.filter((membro) => membro.status === "ativo").length}/
                     {caixa.totalMeses}
                   </p>
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-dashed border-emerald-200 bg-emerald-50 p-4">
-                <p className="text-sm font-medium text-emerald-900">Dono do ponto do mes</p>
-                <p className="mt-1 text-base text-emerald-800">
+              <div className="rounded-[1.8rem] border border-dashed border-[#cfe4d5] bg-[#F3FAF5] p-4">
+                <p className="text-sm font-medium text-[#214F3F]">Dono do ponto do mes</p>
+                <p className="mt-1 text-base text-[#2F7258]">
                   {donoDoPonto ? donoDoPonto.nome : "Rodizio ainda nao preparado"}
                 </p>
-                <p className="mt-1 text-sm text-emerald-700">
+                <p className="mt-1 text-sm text-[#2F7258]">
                   {donoDoPonto?.mesRecebimento
                     ? `Neste momento, o caixa esta no mes ${caixa.mesAtual}. Como ${donoDoPonto.nome} ficou com o mes ${donoDoPonto.mesRecebimento} no rodizio, ele e quem recebe agora.`
                     : "Primeiro voce prepara o rodizio. Depois disso, cada membro recebe no mes igual a sua posicao."}
@@ -1044,34 +1044,34 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
 
               {scheduleReady ? (
                 <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                    <p className="text-sm text-emerald-700">Recebe agora</p>
-                    <p className="mt-2 text-lg font-semibold text-emerald-950">
+                  <div className="rounded-[1.5rem] border border-[#cfe4d5] bg-[#E2F3E7] p-4">
+                    <p className="text-sm text-[#2F7258]">Recebe agora</p>
+                    <p className="mt-2 text-lg font-semibold text-[#13231C]">
                       {donoDoPonto?.nome ?? "Nao definido"}
                     </p>
-                    <p className="mt-1 text-sm text-emerald-800">Mes {caixa.mesAtual}</p>
+                    <p className="mt-1 text-sm text-[#2F7258]">Mes {caixa.mesAtual}</p>
                   </div>
-                  <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4">
-                    <p className="text-sm text-sky-700">Proximo a receber</p>
-                    <p className="mt-2 text-lg font-semibold text-sky-950">
+                  <div className="rounded-[1.5rem] border border-[#ecd69f] bg-[#fff8e7] p-4">
+                    <p className="text-sm text-[#8B6A11]">Proximo a receber</p>
+                    <p className="mt-2 text-lg font-semibold text-[#13231C]">
                       {nextDonoDoPonto?.nome ?? "Ultimo mes do ciclo"}
                     </p>
-                    <p className="mt-1 text-sm text-sky-800">
+                    <p className="mt-1 text-sm text-[#8B6A11]">
                       {nextDonoDoPonto?.mesRecebimento
                         ? `Mes ${nextDonoDoPonto.mesRecebimento}`
                         : "Sem proximo mes apos este"}
                     </p>
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/80">
-                    <p className="text-sm text-slate-600">Fila do rodizio</p>
+                  <div className="rounded-[1.5rem] border border-[#dbe7df] bg-[#f9fbf9] p-4 dark:border-white/10 dark:bg-slate-900/80">
+                    <p className="text-sm text-[#657469]">Fila do rodizio</p>
                     <div className="mt-2 space-y-2">
                       {schedulePreview.map((membro) => (
                         <div
                           key={`${membro.userId}-${membro.mesRecebimento}`}
                           className={`flex items-center justify-between rounded-xl px-3 py-2 text-sm ${
                             membro.mesRecebimento === caixa.mesAtual
-                              ? "bg-emerald-100 text-emerald-900"
-                              : "bg-white text-slate-700"
+                              ? "bg-[#E2F3E7] text-[#214F3F]"
+                              : "bg-white text-[#657469]"
                           }`}
                         >
                           <span className="font-medium">{membro.nome}</span>
@@ -1084,15 +1084,15 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
               ) : null}
 
               {isGerente ? (
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/80">
-                  <p className="text-sm font-medium text-slate-900 dark:text-white">Avanco do caixa</p>
-                  <p className="mt-1 text-sm text-slate-600">
+                <div className="rounded-[1.8rem] border border-[#dbe7df] bg-[#f9fbf9] p-4 dark:border-white/10 dark:bg-slate-900/80">
+                  <p className="text-sm font-medium text-[#13231C] dark:text-white">Avanco do caixa</p>
+                  <p className="mt-1 text-sm text-[#657469]">
                     {scheduleReady
                       ? `Pagamentos confirmados neste mes: ${confirmedPaymentsCount}/${activeMembers.length}.`
                       : `Ative ${caixa.totalMeses} membros e prepare o rodizio antes de avancar.`}
                   </p>
-                  <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-700">
-                    <p className="font-medium text-slate-900 dark:text-white">Como o Dono do ponto e definido</p>
+                  <div className="mt-3 rounded-[1.4rem] border border-[#dbe7df] bg-white p-3 text-sm text-[#657469]">
+                    <p className="font-medium text-[#13231C] dark:text-white">Como o Dono do ponto e definido</p>
                     <p className="mt-1">
                       O rodizio automatico organiza os membros por ordem de entrada no caixa.
                       Quem ficar em 1 recebe no mes 1, quem ficar em 2 recebe no mes 2, e assim
@@ -1106,7 +1106,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                   </div>
                   <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                     <Button
-                      className="h-10 bg-slate-900 text-white hover:bg-slate-800"
+                      className="h-10 bg-[#214F3F] text-white hover:bg-[#183b2f]"
                       disabled={
                         preparingSchedule ||
                         scheduleReady ||
@@ -1117,7 +1117,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                       {preparingSchedule ? "Preparando..." : "Preparar rodizio automatico"}
                     </Button>
                     <Button
-                      className="h-10 bg-emerald-700 text-white hover:bg-emerald-800"
+                      className="h-10 bg-[#2F7258] text-white hover:bg-[#255a46]"
                       disabled={advancingMonth || !scheduleReady}
                       onClick={handleAdvanceMonth}
                     >
@@ -1129,7 +1129,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                     </Button>
                   </div>
                   {scheduleReady && remainingPaymentsCount > 0 ? (
-                    <p className="mt-2 text-xs text-amber-700">
+                    <p className="mt-2 text-xs text-[#8B6A11]">
                       Ainda faltam {remainingPaymentsCount} pagamentos confirmados para liberar o
                       avanco deste mes.
                     </p>
@@ -1138,9 +1138,9 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
               ) : null}
 
               {!isGerente && meAsMember ? (
-                <div className="space-y-3 rounded-3xl bg-slate-950 p-4 text-white">
+                <div className="space-y-3 rounded-[1.8rem] bg-[#214F3F] p-4 text-white shadow-[0_18px_40px_rgba(33,79,63,0.18)]">
                   <div>
-                    <p className="text-sm text-slate-300">Seu pagamento</p>
+                    <p className="text-sm text-white/75">Seu pagamento</p>
                     <p className="mt-2 text-2xl font-semibold">
                       R$ {caixa.valorMensal.toFixed(2)}
                     </p>
@@ -1151,7 +1151,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                     {myPayment?.status ? myPayment.status : "ainda nao marcado"}
                   </div>
                   <Button
-                    className="h-11 w-full bg-emerald-600 text-white hover:bg-emerald-500"
+                    className="h-11 w-full bg-white text-[#214F3F] hover:bg-[#f2f6f3]"
                     disabled={(Boolean(myPayment) && !canRedeclarePayment) || submitting}
                     onClick={handleDeclarePayment}
                   >
@@ -1259,7 +1259,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                     return (
                     <div
                       key={membro.userId}
-                      className="flex flex-col gap-3 rounded-3xl border border-slate-100 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/80 sm:flex-row sm:items-center sm:justify-between"
+                      className="flex flex-col gap-3 rounded-[1.7rem] border border-[#e5ede7] bg-[#f9fbf9] p-4 dark:border-white/10 dark:bg-slate-900/80 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="flex items-center gap-3">
                         <Avatar className="h-11 w-11">
@@ -1272,8 +1272,8 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium text-slate-900 dark:text-white">{membro.nome}</p>
-                          <p className="text-sm text-slate-500">
+                          <p className="font-medium text-[#13231C] dark:text-white">{membro.nome}</p>
+                          <p className="text-sm text-[#657469]">
                             {membro.ordemSorteio
                               ? `${membro.ordemSorteio}º no rodizio • recebe no mes ${membro.mesRecebimento}`
                               : "Ordem ainda nao definida"}
@@ -1281,11 +1281,11 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge className="bg-white text-slate-700 hover:bg-white">
+                        <Badge className="bg-white text-[#657469] hover:bg-white">
                           {membro.status}
                         </Badge>
                         {membro.mesRecebimento === caixa.mesAtual ? (
-                          <Badge className="bg-emerald-100 text-emerald-900 hover:bg-emerald-100">
+                          <Badge className="bg-[#E2F3E7] text-[#214F3F] hover:bg-[#E2F3E7]">
                             recebe neste mes
                           </Badge>
                         ) : null}
@@ -1296,7 +1296,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                           <>
                             <button
                               type="button"
-                              className="inline-flex h-9 items-center justify-center rounded-xl bg-emerald-700 px-3 text-sm font-medium text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="inline-flex h-9 items-center justify-center rounded-full bg-[#2F7258] px-4 text-sm font-medium text-white transition hover:bg-[#255a46] disabled:cursor-not-allowed disabled:opacity-50"
                               disabled={processingPaymentId === rowPaymentId}
                               onClick={() => handleConfirmPayment(paymentRecord)}
                             >
@@ -1306,7 +1306,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                             </button>
                             <button
                               type="button"
-                              className="inline-flex h-9 items-center justify-center rounded-xl border border-red-200 bg-white px-3 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="inline-flex h-9 items-center justify-center rounded-full border border-[#f2c9bd] bg-white px-4 text-sm font-medium text-[#a24834] transition hover:bg-[#fff3ee] disabled:cursor-not-allowed disabled:opacity-50"
                               disabled={processingPaymentId === rowPaymentId}
                               onClick={() => handleRejectPayment(paymentRecord)}
                             >
@@ -1317,7 +1317,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                         {isGerente && !paymentStatus ? (
                           <button
                             type="button"
-                            className="inline-flex h-9 items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="inline-flex h-9 items-center justify-center rounded-full bg-[#214F3F] px-4 text-sm font-medium text-white transition hover:bg-[#183b2f] disabled:cursor-not-allowed disabled:opacity-50"
                             disabled={processingPaymentId === rowPaymentId}
                             onClick={() => handleMarkPaymentByManager(membro)}
                           >
@@ -1329,7 +1329,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                         {isGerente ? (
                           <button
                             type="button"
-                            className="inline-flex h-9 items-center justify-center rounded-xl border border-red-200 bg-white px-3 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="inline-flex h-9 items-center justify-center rounded-full border border-[#f2c9bd] bg-white px-4 text-sm font-medium text-[#a24834] transition hover:bg-[#fff3ee] disabled:cursor-not-allowed disabled:opacity-50"
                             disabled={removingMemberEmail === membro.email?.trim().toLowerCase()}
                             onClick={() => handleRemoveMember(membro)}
                           >
@@ -1347,26 +1347,26 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                     ? pendingInvites.map((convite) => (
                     <div
                       key={convite.token}
-                      className="flex flex-col gap-3 rounded-3xl border border-dashed border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between"
+                      className="flex flex-col gap-3 rounded-[1.7rem] border border-dashed border-[#ecd69f] bg-[#fff8e7] p-4 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="flex items-center gap-3">
                         <Avatar className="h-11 w-11">
-                          <AvatarFallback className="bg-amber-200 text-amber-900">
+                          <AvatarFallback className="bg-[#f7df9d] text-[#8B6A11]">
                             @
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium text-slate-900 dark:text-white">{convite.emailDestino}</p>
-                          <p className="text-sm text-slate-500">
+                          <p className="font-medium text-[#13231C] dark:text-white">{convite.emailDestino}</p>
+                          <p className="text-sm text-[#657469]">
                             Convite registrado. Aguardando aceite para entrar no caixa.
                           </p>
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">
+                        <Badge className="bg-[#fff4d8] text-[#8B6A11] hover:bg-[#fff4d8]">
                           convite pendente
                         </Badge>
-                        <Badge className="bg-white text-slate-700 hover:bg-white">
+                        <Badge className="bg-white text-[#657469] hover:bg-white">
                           aguardando entrada
                         </Badge>
                         <button
@@ -1389,26 +1389,26 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
           </Card>
         </div>
 
-        <Card className="border-white/70 bg-white/90 shadow-sm dark:border-white/10 dark:bg-slate-950/80">
+        <Card className="border-[#dbe7df] bg-white shadow-[0_20px_48px_rgba(33,79,63,0.08)] dark:border-white/10 dark:bg-slate-950/80">
           <CardHeader>
-            <CardTitle className="text-slate-900 dark:text-white">Historico de pagamentos</CardTitle>
+            <CardTitle className="text-[#13231C] dark:text-white">Historico de pagamentos</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col gap-2 sm:flex-row" aria-label="Acoes de exportacao">
               <Button
-                className="h-10 bg-slate-900 text-white hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+                className="h-10 bg-[#214F3F] text-white hover:bg-[#183b2f] dark:bg-emerald-600 dark:hover:bg-emerald-500"
                 onClick={handleExportHistoryCsv}
               >
                 Exportar CSV
               </Button>
               <Button
-                className="h-10 border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+                className="h-10 border border-[#BCD5C4] bg-white text-[#214F3F] hover:bg-[#f5f8f5] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
                 onClick={handleExportHistoryPdf}
               >
                 Exportar PDF
               </Button>
               <Button
-                className="h-10 bg-emerald-700 text-white hover:bg-emerald-800"
+                className="h-10 bg-[#2F7258] text-white hover:bg-[#255a46]"
                 onClick={handleShareMonthSummaryOnWhatsApp}
               >
                 Compartilhar resumo no WhatsApp
@@ -1416,13 +1416,13 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
             </div>
             <div className="grid gap-3 md:grid-cols-3">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="history-month">
+                <label className="text-sm font-medium text-[#214F3F] dark:text-slate-300" htmlFor="history-month">
                   Filtrar por mes
                 </label>
                 <select
                   id="history-month"
                   aria-describedby="history-month-help"
-                  className="flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex h-11 w-full rounded-[1.1rem] border border-[#dbe7df] bg-white px-3 py-2 text-sm text-[#13231C] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7258]"
                   value={historyMonthFilter}
                   onChange={(event) => setHistoryMonthFilter(event.target.value)}
                 >
@@ -1433,18 +1433,18 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                     </option>
                   ))}
                 </select>
-                <p id="history-month-help" className="text-xs text-slate-500 dark:text-slate-400">
+                <p id="history-month-help" className="text-xs text-[#657469] dark:text-slate-400">
                   Mostra apenas os pagamentos do mes selecionado.
                 </p>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="history-status">
+                <label className="text-sm font-medium text-[#214F3F] dark:text-slate-300" htmlFor="history-status">
                   Filtrar por status
                 </label>
                 <select
                   id="history-status"
                   aria-describedby="history-status-help"
-                  className="flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex h-11 w-full rounded-[1.1rem] border border-[#dbe7df] bg-white px-3 py-2 text-sm text-[#13231C] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7258]"
                   value={historyStatusFilter}
                   onChange={(event) => setHistoryStatusFilter(event.target.value)}
                 >
@@ -1453,18 +1453,18 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                   <option value="confirmado">Confirmado</option>
                   <option value="rejeitado">Rejeitado</option>
                 </select>
-                <p id="history-status-help" className="text-xs text-slate-500 dark:text-slate-400">
+                <p id="history-status-help" className="text-xs text-[#657469] dark:text-slate-400">
                   Refina o historico por confirmado, pendente ou rejeitado.
                 </p>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="history-member">
+                <label className="text-sm font-medium text-[#214F3F] dark:text-slate-300" htmlFor="history-member">
                   Filtrar por membro
                 </label>
                 <select
                   id="history-member"
                   aria-describedby="history-member-help"
-                  className="flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex h-11 w-full rounded-[1.1rem] border border-[#dbe7df] bg-white px-3 py-2 text-sm text-[#13231C] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7258]"
                   value={historyMemberFilter}
                   onChange={(event) => setHistoryMemberFilter(event.target.value)}
                 >
@@ -1475,7 +1475,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                     </option>
                   ))}
                 </select>
-                <p id="history-member-help" className="text-xs text-slate-500 dark:text-slate-400">
+                <p id="history-member-help" className="text-xs text-[#657469] dark:text-slate-400">
                   Limita o historico ao membro selecionado.
                 </p>
               </div>

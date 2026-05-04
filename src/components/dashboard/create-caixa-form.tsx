@@ -169,8 +169,8 @@ export function CreateCaixaForm({
   return (
     <div className="space-y-5">
       <div className="space-y-1">
-        <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">{resolvedTitle}</h2>
-        <p className="text-sm text-slate-600 dark:text-slate-300">
+        <h2 className="text-2xl font-semibold text-[#13231C] dark:text-white">{resolvedTitle}</h2>
+        <p className="text-sm text-[#657469] dark:text-slate-300">
           {resolvedDescription}
         </p>
       </div>
@@ -183,10 +183,10 @@ export function CreateCaixaForm({
             placeholder="Ex: Caixa dos Amigos"
             aria-describedby={errors.nome ? "caixa-nome-error" : "caixa-nome-help"}
             aria-invalid={errors.nome ? "true" : "false"}
-            className="flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex h-12 w-full rounded-[1.2rem] border border-[#dbe7df] bg-white px-4 py-2 text-sm text-[#13231C] shadow-sm transition-colors placeholder:text-[#8a988f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7258]"
             {...register("nome")}
           />
-          <p id="caixa-nome-help" className="text-xs text-slate-500 dark:text-slate-400">
+          <p id="caixa-nome-help" className="text-xs text-[#657469] dark:text-slate-400">
             Nome que identifica esse grupo no painel.
           </p>
           {errors.nome ? (
@@ -203,10 +203,10 @@ export function CreateCaixaForm({
             placeholder="Breve resumo do grupo"
             aria-describedby={errors.descricao ? "caixa-descricao-error" : "caixa-descricao-help"}
             aria-invalid={errors.descricao ? "true" : "false"}
-            className="flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex h-12 w-full rounded-[1.2rem] border border-[#dbe7df] bg-white px-4 py-2 text-sm text-[#13231C] shadow-sm transition-colors placeholder:text-[#8a988f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7258]"
             {...register("descricao")}
           />
-          <p id="caixa-descricao-help" className="text-xs text-slate-500 dark:text-slate-400">
+          <p id="caixa-descricao-help" className="text-xs text-[#657469] dark:text-slate-400">
             Resumo opcional para contextualizar o grupo.
           </p>
           {errors.descricao ? (
@@ -227,10 +227,10 @@ export function CreateCaixaForm({
               placeholder="Digite o valor"
               aria-describedby={errors.valorMensal ? "caixa-valor-error" : "caixa-valor-help"}
               aria-invalid={errors.valorMensal ? "true" : "false"}
-              className="flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex h-12 w-full rounded-[1.2rem] border border-[#dbe7df] bg-white px-4 py-2 text-sm text-[#13231C] shadow-sm transition-colors placeholder:text-[#8a988f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7258]"
               {...register("valorMensal")}
             />
-            <p id="caixa-valor-help" className="text-xs text-slate-500 dark:text-slate-400">
+            <p id="caixa-valor-help" className="text-xs text-[#657469] dark:text-slate-400">
               Valor que cada membro paga em cada mes.
             </p>
             {errors.valorMensal ? (
@@ -249,10 +249,10 @@ export function CreateCaixaForm({
               placeholder="Digite a quantidade"
               aria-describedby={errors.totalMeses ? "caixa-total-error" : "caixa-total-help"}
               aria-invalid={errors.totalMeses ? "true" : "false"}
-              className="flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex h-12 w-full rounded-[1.2rem] border border-[#dbe7df] bg-white px-4 py-2 text-sm text-[#13231C] shadow-sm transition-colors placeholder:text-[#8a988f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7258]"
               {...register("totalMeses")}
             />
-            <p id="caixa-total-help" className="text-xs text-slate-500 dark:text-slate-400">
+            <p id="caixa-total-help" className="text-xs text-[#657469] dark:text-slate-400">
               Esse numero define a quantidade de membros e de meses do caixa.
             </p>
             {errors.totalMeses ? (
@@ -271,10 +271,10 @@ export function CreateCaixaForm({
               type="date"
               aria-describedby={errors.dataInicio ? "caixa-data-error" : "caixa-data-help"}
               aria-invalid={errors.dataInicio ? "true" : "false"}
-              className="flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex h-12 w-full rounded-[1.2rem] border border-[#dbe7df] bg-white px-4 py-2 text-sm text-[#13231C] shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7258]"
               {...register("dataInicio")}
             />
-            <p id="caixa-data-help" className="text-xs text-slate-500 dark:text-slate-400">
+            <p id="caixa-data-help" className="text-xs text-[#657469] dark:text-slate-400">
               Data usada como referencia para o inicio do ciclo do caixa.
             </p>
             {errors.dataInicio ? (
@@ -294,10 +294,10 @@ export function CreateCaixaForm({
               disabled={modoCriacao === "novo"}
               aria-describedby={errors.mesAtual ? "caixa-mes-error" : "caixa-mes-help"}
               aria-invalid={errors.mesAtual ? "true" : "false"}
-              className="flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex h-12 w-full rounded-[1.2rem] border border-[#dbe7df] bg-white px-4 py-2 text-sm text-[#13231C] shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7258]"
               {...register("mesAtual")}
             />
-            <p id="caixa-mes-help" className="text-xs text-slate-500 dark:text-slate-400">
+            <p id="caixa-mes-help" className="text-xs text-[#657469] dark:text-slate-400">
               {modoCriacao === "novo"
                 ? "Para um caixa novo, o ciclo sempre comeca no mes 1."
                 : "Informe em qual mes o grupo esta hoje para continuar o acompanhamento por aqui."}
@@ -310,13 +310,13 @@ export function CreateCaixaForm({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-100">
+        <div className="rounded-[1.5rem] border border-[#cfe4d5] bg-[#E2F3E7] px-4 py-3 text-sm text-[#214F3F] dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-100">
           <p className="font-medium">Total por ponto: R$ {totalPorMes.toFixed(2)}</p>
-          <p className="mt-1 text-emerald-800 dark:text-emerald-200">{suggestion}</p>
+          <p className="mt-1 text-[#2F7258] dark:text-emerald-200">{suggestion}</p>
         </div>
 
         {modoCriacao === "andamento" ? (
-          <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950 dark:border-sky-400/20 dark:bg-sky-500/10 dark:text-sky-100">
+          <div className="rounded-[1.5rem] border border-[#ecd69f] bg-[#fff8e7] px-4 py-3 text-sm text-[#8B6A11] dark:border-sky-400/20 dark:bg-sky-500/10 dark:text-sky-100">
             Depois de cadastrar, voce pode convidar os membros que faltam, ajustar pagamentos deste mes
             e continuar o caixa sem recomecar o historico manualmente.
           </div>
@@ -324,7 +324,7 @@ export function CreateCaixaForm({
 
         <button
           type="submit"
-          className="h-11 w-full rounded-lg bg-emerald-700 text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className="h-12 w-full rounded-full bg-[#214F3F] text-white shadow-[0_16px_34px_rgba(33,79,63,0.18)] hover:bg-[#183b2f] disabled:cursor-not-allowed disabled:opacity-50"
           disabled={isSubmitting}
         >
           {isSubmitting
@@ -338,35 +338,35 @@ export function CreateCaixaForm({
       </form>
 
       {showBackupRestore ? (
-        <details className="rounded-3xl border border-dashed border-slate-300 p-4 dark:border-white/10">
-          <summary className="cursor-pointer list-none text-sm font-medium text-slate-900 dark:text-white">
+        <details className="rounded-[1.7rem] border border-dashed border-[#dbe7df] bg-[#f9fbf9] p-4 dark:border-white/10">
+          <summary className="cursor-pointer list-none text-sm font-medium text-[#13231C] dark:text-white">
             Restaurar caixa por JSON
           </summary>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+          <p className="mt-2 text-sm text-[#657469] dark:text-slate-300">
             Use um backup exportado de outro caixa para recriar tudo com historico, membros, pagamentos e notas.
           </p>
           <div className="mt-3 space-y-3">
             <input
               type="file"
               accept="application/json,.json"
-              className="block w-full text-sm text-slate-600 dark:text-slate-300"
+              className="block w-full text-sm text-[#657469] dark:text-slate-300"
               onChange={handleBackupFileUpload}
             />
             <textarea
               aria-label="JSON do backup"
               aria-describedby="backup-json-help"
-              className="min-h-32 w-full rounded-2xl border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="min-h-32 w-full rounded-[1.2rem] border border-[#dbe7df] bg-white px-4 py-3 text-sm text-[#13231C] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7258]"
               placeholder="Cole aqui o JSON do backup"
               value={backupJson}
               onChange={(event) => setBackupJson(event.target.value)}
             />
-            <p id="backup-json-help" className="text-xs text-slate-500 dark:text-slate-400">
+            <p id="backup-json-help" className="text-xs text-[#657469] dark:text-slate-400">
               Voce pode colar o conteudo do arquivo ou selecionar um JSON exportado.
             </p>
             <button
               type="button"
               className={cn(
-                "h-11 w-full rounded-lg border border-slate-300 bg-white text-slate-800 hover:bg-slate-50",
+                "h-11 w-full rounded-full border border-[#BCD5C4] bg-white text-[#214F3F] hover:bg-[#f5f8f5]",
                 "disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800",
               )}
               disabled={restoringBackup}

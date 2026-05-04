@@ -1,7 +1,7 @@
-import * as React from "react"
-import { Input as InputPrimitive } from "@base-ui/react/input"
+import * as React from "react";
+import { Input as InputPrimitive } from "@base-ui/react/input";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   return (
@@ -9,12 +9,12 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
       type={type}
       data-slot="input"
       className={cn(
-        "h-12 w-full min-w-0 rounded-[1.6rem] border border-white/70 bg-white/72 px-4 py-2 text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.82),0_10px_24px_rgba(91,102,131,0.08)] transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:border-white/10 dark:bg-white/8 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_24px_rgba(0,0,0,0.22)] dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
-        className
+        "h-12 w-full min-w-0 rounded-[1.2rem] border border-[#dbe7df] bg-white px-4 py-2 text-base text-[#13231C] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-[#8a978f] focus-visible:border-[#2F7258] focus-visible:ring-3 focus-visible:ring-[#2F7258]/15 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-[#f1f3f1] disabled:opacity-60 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-400 dark:focus-visible:border-[#E2F3E7] dark:focus-visible:ring-[#E2F3E7]/15",
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
-export { Input }
+export { Input };

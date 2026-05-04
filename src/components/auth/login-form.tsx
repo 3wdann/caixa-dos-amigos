@@ -110,10 +110,10 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="rounded-[2.3rem] border-white/75 bg-white/82 dark:border-white/10 dark:bg-slate-950/72">
+    <Card className="brand-card rounded-[1.9rem]">
       <CardHeader className="space-y-2">
-        <CardTitle className="text-3xl text-slate-900 dark:text-white">Entrar</CardTitle>
-        <CardDescription className="text-sm text-slate-600 dark:text-slate-300">
+        <CardTitle className="text-3xl text-[#13231C] dark:text-white">Entrar</CardTitle>
+        <CardDescription className="text-sm text-[#657469] dark:text-slate-300">
           Acesse seus caixas com email e senha ou continue com Google.
         </CardDescription>
       </CardHeader>
@@ -127,7 +127,7 @@ export function LoginForm() {
               placeholder="voce@exemplo.com"
               aria-describedby={errors.email ? "login-email-error" : "login-email-help"}
               aria-invalid={errors.email ? "true" : "false"}
-              className="flex h-12 w-full rounded-[1.6rem] border border-white/70 bg-white/72 px-4 py-2 text-sm text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.82),0_10px_24px_rgba(91,102,131,0.08)] transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-white/10 dark:bg-white/8 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_24px_rgba(0,0,0,0.22)]"
+              className="flex h-12 w-full rounded-[1.2rem] border border-[#dbe7df] bg-white px-4 py-2 text-sm text-[#13231C] shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] transition-colors placeholder:text-[#8a978f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7258]/20 dark:border-white/10 dark:bg-white/5 dark:text-white"
               {...register("email")}
             />
             <p id="login-email-help" className="text-xs text-slate-500 dark:text-slate-400">
@@ -148,7 +148,7 @@ export function LoginForm() {
               placeholder="******"
               aria-describedby={errors.senha ? "login-senha-error" : "login-senha-help"}
               aria-invalid={errors.senha ? "true" : "false"}
-              className="flex h-12 w-full rounded-[1.6rem] border border-white/70 bg-white/72 px-4 py-2 text-sm text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.82),0_10px_24px_rgba(91,102,131,0.08)] transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-white/10 dark:bg-white/8 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_24px_rgba(0,0,0,0.22)]"
+              className="flex h-12 w-full rounded-[1.2rem] border border-[#dbe7df] bg-white px-4 py-2 text-sm text-[#13231C] shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] transition-colors placeholder:text-[#8a978f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7258]/20 dark:border-white/10 dark:bg-white/5 dark:text-white"
               {...register("senha")}
             />
             <p id="login-senha-help" className="text-xs text-slate-500 dark:text-slate-400">

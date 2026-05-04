@@ -151,30 +151,30 @@ export function DashboardPageClient() {
     <main
       id="main-content"
       tabIndex={-1}
-      className="soft-app-shell"
+      className="brand-shell"
     >
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
         {!isOnline ? <OfflineBanner /> : null}
-        <Card className="rounded-[2.4rem] border-white/70 bg-white/82 dark:border-white/10 dark:bg-slate-950/72">
+        <Card className="brand-card rounded-[1.9rem]">
           <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
-              <Avatar className="h-12 w-12 border border-slate-200">
+              <Avatar className="h-12 w-12 border border-[#dbe7df]">
                 <AvatarImage src={profile.fotoUrl ?? undefined} alt={profile.nome} />
                 <AvatarFallback style={{ backgroundColor: profile.cor }} className="text-white">
                   {initialsFromName(profile.nome)}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Seu painel</p>
-                <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Ola, {profile.nome}</h1>
-                <p className="text-sm text-slate-600 dark:text-slate-300">
+                <p className="text-sm text-[#657469] dark:text-slate-400">Seu painel</p>
+                <h1 className="text-2xl font-semibold text-[#13231C] dark:text-white">Ola, {profile.nome}</h1>
+                <p className="text-sm text-[#657469] dark:text-slate-300">
                   Organize seus caixas e acompanhe o mes atual.
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">
+                  <Badge className="bg-[#fff4d8] text-[#8B6A11] hover:bg-[#fff4d8]">
                     Versao beta
                   </Badge>
-                  <Badge className="bg-emerald-100 text-emerald-900 hover:bg-emerald-100">
+                  <Badge className="bg-[#E2F3E7] text-[#214F3F] hover:bg-[#E2F3E7]">
                     Plano {getPlanoLabel(profile.plano)}
                   </Badge>
                 </div>
@@ -204,37 +204,37 @@ export function DashboardPageClient() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[2.4rem] border-white/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.78),rgba(226,249,246,0.72))] text-slate-950 dark:border-white/10 dark:bg-[linear-gradient(145deg,rgba(22,28,47,0.92),rgba(28,42,60,0.88))] dark:text-white">
+        <Card className="overflow-hidden rounded-[2rem] border-[#dbe7df] bg-white dark:border-white/10 dark:bg-[rgba(22,39,32,0.9)]">
           <CardContent className="space-y-4 p-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm uppercase tracking-[0.2em] text-sky-700 dark:text-emerald-200">Resumo rapido</p>
-              <p className="text-sm text-slate-600 dark:text-slate-300">
+              <p className="text-sm uppercase tracking-[0.2em] text-[#2F7258] dark:text-[#E2F3E7]">Resumo rapido</p>
+              <p className="text-sm text-[#657469] dark:text-slate-300">
                 Beta aberto para cadastros e testes controlados.
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-[1.8rem] bg-white/60 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:bg-white/10">
-                <p className="text-sm text-slate-500 dark:text-slate-300">Gerencio</p>
-                <p className="mt-2 text-3xl font-semibold">{managedCaixas.length}</p>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Ativos: {activeManagedCaixas} de 2 no Free</p>
+              <div className="rounded-[1.6rem] bg-[#214F3F] p-5 text-white shadow-[0_18px_36px_rgba(33,79,63,0.2)]">
+                <p className="text-sm text-white/75">Gerencio</p>
+                <p className="mt-3 text-3xl font-semibold">{managedCaixas.length}</p>
+                <p className="mt-2 text-sm text-white/75">Ativos: {activeManagedCaixas} de 2 no Free</p>
               </div>
-              <div className="rounded-[1.8rem] bg-white/60 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:bg-white/10">
-                <p className="text-sm text-slate-500 dark:text-slate-300">Participo</p>
-                <p className="mt-2 text-3xl font-semibold">{memberCaixas.length}</p>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Ativos: {activeMemberCaixas} de 2 no Free</p>
+              <div className="rounded-[1.6rem] border border-[#dbe7df] bg-[#F6FBF7] p-5 dark:border-white/10 dark:bg-white/5">
+                <p className="text-sm text-[#657469] dark:text-slate-300">Participo</p>
+                <p className="mt-3 text-3xl font-semibold text-[#13231C] dark:text-white">{memberCaixas.length}</p>
+                <p className="mt-2 text-sm text-[#657469] dark:text-slate-400">Ativos: {activeMemberCaixas} de 2 no Free</p>
               </div>
-              <div className="rounded-[1.8rem] bg-white/60 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:bg-white/10">
-                <p className="text-sm text-slate-500 dark:text-slate-300">Convites pendentes</p>
-                <p className="mt-2 text-3xl font-semibold">{pendingInvites.length}</p>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Aguardando seu aceite</p>
+              <div className="rounded-[1.6rem] border border-[#ecd69f] bg-[#fff9ec] p-5 dark:border-white/10 dark:bg-white/5">
+                <p className="text-sm text-[#8B6A11] dark:text-slate-300">Convites pendentes</p>
+                <p className="mt-3 text-3xl font-semibold text-[#13231C] dark:text-white">{pendingInvites.length}</p>
+                <p className="mt-2 text-sm text-[#8B6A11] dark:text-slate-400">Aguardando seu aceite</p>
               </div>
-              <div className="rounded-[1.8rem] bg-white/60 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:bg-white/10">
-                <p className="text-sm text-slate-500 dark:text-slate-300">Plano atual</p>
-                <p className="mt-2 text-3xl font-semibold">{getPlanoLabel(profile.plano)}</p>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Versao beta em validacao</p>
+              <div className="rounded-[1.6rem] border border-[#dbe7df] bg-white p-5 dark:border-white/10 dark:bg-white/5">
+                <p className="text-sm text-[#657469] dark:text-slate-300">Plano atual</p>
+                <p className="mt-3 text-3xl font-semibold text-[#13231C] dark:text-white">{getPlanoLabel(profile.plano)}</p>
+                <p className="mt-2 text-sm text-[#657469] dark:text-slate-400">Versao beta em validacao</p>
               </div>
             </div>
-            <div className="rounded-[1.8rem] border border-white/60 bg-white/45 p-4 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
+            <div className="rounded-[1.6rem] border border-[#dbe7df] bg-[#f9fbf9] p-4 text-sm text-[#657469] dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
               No plano Free, voce pode ter ate 2 caixas ativos como gerente e ate 2 caixas ativos como membro.
             </div>
           </CardContent>
@@ -247,11 +247,11 @@ export function DashboardPageClient() {
                 <div className="flex items-center justify-between">
                   <h2
                     id="managed-caixas-title"
-                    className="text-xl font-semibold text-slate-900 dark:text-white"
+                    className="text-xl font-semibold text-[#13231C] dark:text-white"
                   >
                     Caixas que gerencio
                   </h2>
-                  <span className="text-sm text-slate-500 dark:text-slate-400">
+                  <span className="text-sm text-[#657469] dark:text-slate-400">
                     Visao do gerente
                   </span>
                 </div>
@@ -268,11 +268,11 @@ export function DashboardPageClient() {
                 <div className="flex items-center justify-between">
                   <h2
                     id="member-caixas-title"
-                    className="text-xl font-semibold text-slate-900 dark:text-white"
+                    className="text-xl font-semibold text-[#13231C] dark:text-white"
                   >
                     Caixas que participo
                   </h2>
-                  <span className="text-sm text-slate-500 dark:text-slate-400">
+                  <span className="text-sm text-[#657469] dark:text-slate-400">
                     Visao do membro
                   </span>
                 </div>
@@ -302,11 +302,11 @@ export function DashboardPageClient() {
                 </div>
                 <div className="grid gap-4">
                   {pendingInvites.map((convite) => (
-                    <Card key={convite.token} className="border-amber-200 bg-[linear-gradient(145deg,rgba(255,252,238,0.96),rgba(255,237,212,0.82))] dark:border-amber-400/20 dark:bg-amber-500/10">
+                    <Card key={convite.token} className="border-[#ecd69f] bg-[#fff9ec] dark:border-amber-400/20 dark:bg-amber-500/10">
                       <CardContent className="space-y-2 p-5">
                         <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium text-amber-900">Convite ativo</p>
-                          <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">
+                          <p className="text-sm font-medium text-[#8B6A11]">Convite ativo</p>
+                          <Badge className="bg-[#fff0d6] text-[#b66b1a] hover:bg-[#fff0d6]">
                             aguardando entrada
                           </Badge>
                         </div>
@@ -349,7 +349,7 @@ export function DashboardPageClient() {
             ) : null}
           </div>
         ) : (
-          <Card className="border-dashed border-white/70 bg-white/82 dark:border-white/10 dark:bg-slate-950/72">
+          <Card className="border-dashed border-[#dbe7df] bg-white dark:border-white/10 dark:bg-[rgba(22,39,32,0.9)]">
             <CardContent className="space-y-3 p-6 text-sm text-slate-600 dark:text-slate-300">
               <p className="font-medium text-slate-900 dark:text-white">
                 Seu painel esta pronto para comecar.

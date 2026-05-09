@@ -156,7 +156,7 @@ export function RegisterForm() {
               placeholder="Seu nome completo"
               aria-describedby={errors.nome ? "register-nome-error" : "register-nome-help"}
               aria-invalid={errors.nome ? "true" : "false"}
-              className="flex h-12 w-full rounded-[1.2rem] border border-[#dbe7df] bg-white px-4 py-2 text-sm text-[#13231C] shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] transition-colors placeholder:text-[#8a978f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7258]/20 dark:border-white/10 dark:bg-white/5 dark:text-white"
+              className="flex h-12 w-full rounded-[1.2rem] border border-[#dbe7df] bg-white px-4 py-2 text-sm text-[#13231C] shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] transition-colors placeholder:text-[#8a978f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7258]/20 dark:border-white/10 dark:bg-[rgba(15,23,42,0.82)] dark:text-slate-100 dark:placeholder:text-slate-500"
               {...register("nome")}
             />
             <p id="register-nome-help" className="text-xs text-slate-500 dark:text-slate-400">
@@ -177,7 +177,7 @@ export function RegisterForm() {
               placeholder="voce@exemplo.com"
               aria-describedby={errors.email ? "register-email-error" : "register-email-help"}
               aria-invalid={errors.email ? "true" : "false"}
-              className="flex h-12 w-full rounded-[1.2rem] border border-[#dbe7df] bg-white px-4 py-2 text-sm text-[#13231C] shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] transition-colors placeholder:text-[#8a978f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7258]/20 dark:border-white/10 dark:bg-white/5 dark:text-white"
+              className="flex h-12 w-full rounded-[1.2rem] border border-[#dbe7df] bg-white px-4 py-2 text-sm text-[#13231C] shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] transition-colors placeholder:text-[#8a978f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7258]/20 dark:border-white/10 dark:bg-[rgba(15,23,42,0.82)] dark:text-slate-100 dark:placeholder:text-slate-500"
               {...register("email")}
             />
             <p id="register-email-help" className="text-xs text-slate-500 dark:text-slate-400">
@@ -198,7 +198,7 @@ export function RegisterForm() {
               placeholder="******"
               aria-describedby={errors.senha ? "register-senha-error" : "register-senha-help"}
               aria-invalid={errors.senha ? "true" : "false"}
-              className="flex h-12 w-full rounded-[1.2rem] border border-[#dbe7df] bg-white px-4 py-2 text-sm text-[#13231C] shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] transition-colors placeholder:text-[#8a978f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7258]/20 dark:border-white/10 dark:bg-white/5 dark:text-white"
+              className="flex h-12 w-full rounded-[1.2rem] border border-[#dbe7df] bg-white px-4 py-2 text-sm text-[#13231C] shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] transition-colors placeholder:text-[#8a978f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7258]/20 dark:border-white/10 dark:bg-[rgba(15,23,42,0.82)] dark:text-slate-100 dark:placeholder:text-slate-500"
               {...register("senha")}
             />
             <p id="register-senha-help" className="text-xs text-slate-500 dark:text-slate-400">
@@ -222,7 +222,7 @@ export function RegisterForm() {
 
         <button
           type="button"
-          className="h-12 w-full rounded-full border border-white/70 bg-white/75 text-sm font-medium text-slate-700 shadow-[0_12px_28px_rgba(91,102,131,0.08)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15"
+          className="h-12 w-full rounded-full border border-white/70 bg-white/75 text-sm font-medium text-slate-700 shadow-[0_12px_28px_rgba(91,102,131,0.08)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-[rgba(15,23,42,0.72)] dark:text-slate-100 dark:hover:bg-white/8"
           onClick={handleGoogleSignUp}
           disabled={pendingGoogle}
         >

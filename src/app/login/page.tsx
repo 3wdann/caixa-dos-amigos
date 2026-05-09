@@ -21,7 +21,7 @@ export default function LoginPage() {
             <div className="space-y-4">
               <h1
                 id="login-title"
-                className="max-w-xl text-4xl font-semibold tracking-tight text-[#13231C] dark:text-white sm:text-5xl"
+                className="max-w-xl text-4xl font-semibold tracking-tight text-[#13231C] dark:text-slate-50 sm:text-5xl"
               >
                 Seu caixa organizadinho, no ritmo do grupo.
               </h1>

@@ -21,7 +21,7 @@ export default function CadastroPage() {
             <div className="space-y-4">
               <h1
                 id="cadastro-title"
-                className="max-w-xl text-4xl font-semibold tracking-tight text-[#13231C] dark:text-white sm:text-5xl"
+                className="max-w-xl text-4xl font-semibold tracking-tight text-[#13231C] dark:text-slate-50 sm:text-5xl"
               >
                 Crie sua conta e monte o primeiro caixa do jeito certo.
               </h1>

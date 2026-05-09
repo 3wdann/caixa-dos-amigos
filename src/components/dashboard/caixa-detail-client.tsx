@@ -80,6 +80,21 @@ function escapeCsvValue(value: string | number | null | undefined) {
   return `"${normalized.replaceAll('"', '""')}"`;
 }
 
+function getCaixaPublicId(caixaId: string) {
+  const normalized = caixaId.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  return `CXA-${normalized.slice(0, 4)}-${normalized.slice(-4)}`;
+}
+
+function slugifyCaixaNome(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 36);
+}
+
 export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
   const { user, profile } = useAuth();
   const isOnline = useOnlineStatus();
@@ -104,6 +119,8 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
   const [historyMonthFilter, setHistoryMonthFilter] = useState<string>("todos");
   const [historyStatusFilter, setHistoryStatusFilter] = useState<string>("todos");
   const [historyMemberFilter, setHistoryMemberFilter] = useState<string>("todos");
+  const [notesModalOpen, setNotesModalOpen] = useState(false);
+  const [chartsModalOpen, setChartsModalOpen] = useState(false);
   const [cacheReady, setCacheReady] = useState(false);
 
   useEffect(() => {
@@ -317,6 +334,18 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
         return (b.declaradoEm?.toMillis?.() ?? 0) - (a.declaradoEm?.toMillis?.() ?? 0);
       });
   }, [historyMemberFilter, historyMonthFilter, historyStatusFilter, pagamentos]);
+  const caixaPublicId = useMemo(() => getCaixaPublicId(caixaId), [caixaId]);
+  const inviteUrl = useMemo(() => {
+    if (!caixa) {
+      return "";
+    }
+
+    const suffix = `${slugifyCaixaNome(caixa.nome)}-${caixaPublicId.toLowerCase()}`;
+    const baseUrl =
+      typeof window === "undefined" ? "" : `${window.location.origin}`;
+
+    return `${baseUrl}/entrar?convite=${caixa.linkConvite}&caixa=${encodeURIComponent(suffix)}`;
+  }, [caixa, caixaPublicId]);
 
   useEffect(() => {
     setNoteDrafts((current) => {
@@ -351,11 +380,9 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
   }
 
   async function handleCopyInviteLink() {
-    if (!caixa) {
+    if (!caixa || !inviteUrl) {
       return;
     }
-
-    const inviteUrl = `${window.location.origin}/entrar?convite=${caixa.linkConvite}`;
 
     try {
       await navigator.clipboard.writeText(inviteUrl);
@@ -370,11 +397,9 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
   }
 
   function handleShareInviteOnWhatsApp() {
-    if (!caixa) {
+    if (!caixa || !inviteUrl) {
       return;
     }
-
-    const inviteUrl = `${window.location.origin}/entrar?convite=${caixa.linkConvite}`;
     const message = [
       "🎉 Voce foi convidado para um caixa no Caixa dos Amigos.",
       "",
@@ -592,7 +617,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `caixa-${caixaId}-backup.json`;
+      anchor.download = `caixa-${caixaPublicId.toLowerCase()}-backup.json`;
       anchor.click();
       URL.revokeObjectURL(url);
       toast.success("Backup JSON exportado com sucesso.");
@@ -642,7 +667,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `caixa-${caixa.id}-historico.csv`;
+    anchor.download = `caixa-${caixaPublicId.toLowerCase()}-historico.csv`;
     anchor.click();
     URL.revokeObjectURL(url);
     toast.success("CSV exportado com sucesso.");
@@ -670,7 +695,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
       `💰 Resumo do ${monthLabel} no Caixa dos Amigos`,
       "",
       `📦 Caixa: ${caixa.nome}`,
-      `🆔 ID: ${caixa.id}`,
+      `🆔 ID: ${caixaPublicId}`,
       `👑 Gerente: ${managerProfile?.nome ?? "Gerente do caixa"} (${managerProfile?.email ?? caixa.gerenteEmail ?? "email indisponivel"})`,
       `🏆 Dono do ponto: ${donoLabel}`,
       `💸 Valor por membro: R$ ${caixa.valorMensal.toFixed(2)}`,
@@ -784,7 +809,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(10);
     pdf.setTextColor(71, 85, 105);
-    pdf.text(`ID unico: ${caixa.id}`, marginX, cursorY);
+    pdf.text(`ID unico: ${caixaPublicId}`, marginX, cursorY);
     pdf.text(`Mes atual: ${caixa.mesAtual} de ${caixa.totalMeses}`, pageWidth - marginX, cursorY, {
       align: "right",
     });
@@ -806,6 +831,67 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
       [217, 119, 6],
     );
     cursorY += 28;
+
+    const chartBoxY = cursorY;
+    const chartBoxHeight = 44;
+    const chartBoxWidth = (contentWidth - 6) / 2;
+    const maxChartValue = Math.max(
+      1,
+      ...chartMonthData.map((entry) => Math.max(entry.confirmado, entry.pendente)),
+    );
+
+    pdf.setDrawColor(226, 232, 240);
+    pdf.setFillColor(248, 250, 252);
+    pdf.roundedRect(marginX, chartBoxY, chartBoxWidth, chartBoxHeight, 3, 3, "FD");
+    pdf.roundedRect(marginX + chartBoxWidth + 6, chartBoxY, chartBoxWidth, chartBoxHeight, 3, 3, "FD");
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(10);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text("Grafico de arrecadacao", marginX + 4, chartBoxY + 7);
+    pdf.text("Distribuicao do mes atual", marginX + chartBoxWidth + 10, chartBoxY + 7);
+
+    const innerChartX = marginX + 4;
+    const innerChartY = chartBoxY + 12;
+    const barAreaWidth = chartBoxWidth - 8;
+    const barAreaHeight = 22;
+    const slotWidth = barAreaWidth / Math.max(chartMonthData.length, 1);
+
+    chartMonthData.forEach((entry, index) => {
+      const confirmedHeight = (entry.confirmado / maxChartValue) * barAreaHeight;
+      const pendingHeight = (entry.pendente / maxChartValue) * barAreaHeight;
+      const barX = innerChartX + index * slotWidth + 2;
+      const confirmedWidth = Math.max(6, slotWidth * 0.28);
+      const pendingWidth = confirmedWidth;
+
+      pdf.setFillColor(5, 150, 105);
+      pdf.rect(barX, innerChartY + barAreaHeight - confirmedHeight, confirmedWidth, confirmedHeight, "F");
+      pdf.setFillColor(217, 119, 6);
+      pdf.rect(
+        barX + confirmedWidth + 2,
+        innerChartY + barAreaHeight - pendingHeight,
+        pendingWidth,
+        pendingHeight,
+        "F",
+      );
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(7);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text(String(index + 1), barX + 2, innerChartY + barAreaHeight + 5);
+    });
+
+    const distributionStartX = marginX + chartBoxWidth + 10;
+    currentMonthDistribution.forEach((entry, index) => {
+      const rowY = chartBoxY + 14 + index * 7;
+      pdf.setFillColor(entry.color);
+      pdf.circle(distributionStartX, rowY, 1.5, "F");
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(51, 65, 85);
+      pdf.text(`${entry.name}: ${entry.value}`, distributionStartX + 4, rowY + 1);
+    });
+
+    cursorY += 52;
 
     pdf.setTextColor(15, 23, 42);
     pdf.setFont("helvetica", "bold");
@@ -918,7 +1004,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
 
     drawFooter();
 
-    pdf.save(`caixa-${caixa.id}-relatorio.pdf`);
+    pdf.save(`caixa-${caixaPublicId.toLowerCase()}-relatorio.pdf`);
     toast.success("PDF exportado com sucesso.");
   }
 
@@ -950,6 +1036,12 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
           >
             Voltar ao painel
           </Link>
+          <Link
+            className="mt-3 inline-flex rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 dark:border-white/10 dark:text-slate-200"
+            href="/"
+          >
+            Ir para o inicio
+          </Link>
         </div>
       </main>
     );
@@ -967,9 +1059,14 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
         ) : null}
         <div className="flex flex-col gap-4 rounded-[2rem] border border-[#dbe7df] bg-white p-6 shadow-[0_22px_54px_rgba(33,79,63,0.08)] dark:border-white/10 dark:bg-slate-950/75 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
-            <Link href="/painel" className="text-sm font-medium text-[#2F7258] dark:text-emerald-300">
-              Voltar ao painel
-            </Link>
+            <div className="flex flex-wrap items-center gap-3 text-sm font-medium">
+              <Link href="/painel" className="text-[#2F7258] dark:text-emerald-300">
+                Voltar ao painel
+              </Link>
+              <Link href="/" className="text-[#2F7258] dark:text-emerald-300">
+                Ir para o inicio
+              </Link>
+            </div>
             <h1 className="text-3xl font-semibold text-[#13231C] dark:text-white">{caixa.nome}</h1>
             <p className="max-w-2xl text-sm text-[#657469] dark:text-slate-300">
               {caixa.descricao || "Sem descricao para este caixa."}
@@ -993,14 +1090,24 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
         <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
           <Card className="border-[#dbe7df] bg-white shadow-[0_20px_48px_rgba(33,79,63,0.08)] dark:border-white/10 dark:bg-slate-950/80">
             <CardHeader>
-              <CardTitle className="text-[#13231C] dark:text-white">Resumo do mes atual</CardTitle>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <CardTitle className="text-[#13231C] dark:text-white">Resumo do mes atual</CardTitle>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" className="h-10" onClick={() => setNotesModalOpen(true)}>
+                    Notas por mes
+                  </Button>
+                  <Button variant="outline" className="h-10" onClick={() => setChartsModalOpen(true)}>
+                    Graficos do caixa
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-[1.5rem] border border-[#dbe7df] bg-[#f9fbf9] p-4 dark:border-white/10 dark:bg-slate-900/80">
                   <p className="text-sm text-[#657469]">ID unico do caixa</p>
                   <p className="mt-2 break-all font-mono text-sm font-semibold text-[#13231C] dark:text-white">
-                    {caixa.id}
+                    {caixaPublicId}
                   </p>
                 </div>
                 <div className="rounded-[1.5rem] border border-[#cfe4d5] bg-[#E2F3E7] p-4">
@@ -1170,68 +1277,88 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                 <>
                   <Separator />
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/80">
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">Link de convite</p>
-                    <p className="mt-1 break-all text-sm text-slate-600">
-                      {typeof window === "undefined"
-                        ? `/entrar?convite=${caixa.linkConvite}`
-                        : `${window.location.origin}/entrar?convite=${caixa.linkConvite}`}
-                    </p>
-                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                      <Button className="h-10" onClick={handleCopyInviteLink}>
-                        Copiar link de convite
-                      </Button>
+                    <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-sm font-medium text-slate-900 dark:text-white">
+                            Convites e entrada no caixa
+                          </p>
+                          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                            Use o mesmo bloco para compartilhar o convite e adicionar membros por email.
+                          </p>
+                        </div>
+                        <div className="rounded-2xl border border-[#dbe7df] bg-white px-4 py-3 dark:border-white/10 dark:bg-[rgba(15,23,42,0.82)]">
+                          <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#657469] dark:text-slate-400">
+                            Link do convite
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-[#13231C] dark:text-white">
+                            {caixa.nome} • {caixaPublicId}
+                          </p>
+                          <p className="mt-2 break-all text-sm text-slate-600 dark:text-slate-300">
+                            {inviteUrl}
+                          </p>
+                        </div>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <Button className="h-10" onClick={handleCopyInviteLink}>
+                            Copiar link de convite
+                          </Button>
+                          <Button
+                            className="h-10 bg-emerald-700 text-white hover:bg-emerald-800"
+                            onClick={handleShareInviteOnWhatsApp}
+                          >
+                            Compartilhar no WhatsApp
+                          </Button>
+                          <Button
+                            className="h-10 border border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                            disabled={revokingLink}
+                            onClick={handleRegenerateInviteLink}
+                          >
+                            {revokingLink ? "Revogando..." : "Revogar link atual"}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Ao revogar, o link atual deixa de funcionar e um novo link publico e criado
+                          para os proximos convites.
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-[#dbe7df] bg-white p-4 dark:border-white/10 dark:bg-[rgba(15,23,42,0.82)]">
+                        <AddMemberForm caixaId={caixaId} />
+                      </div>
+                    </div>
+                  </div>
+                  <Separator />
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/80">
+                      <p className="text-sm font-medium text-slate-900 dark:text-white">Backup e restauracao</p>
+                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                        Exporte este caixa inteiro em JSON para recriar depois com historico, membros, pagamentos e notas.
+                      </p>
                       <Button
-                        className="h-10 bg-emerald-700 text-white hover:bg-emerald-800"
-                        onClick={handleShareInviteOnWhatsApp}
+                        className="mt-3 h-10 bg-slate-900 text-white hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+                        onClick={handleExportBackupJson}
                       >
-                        Compartilhar no WhatsApp
-                      </Button>
-                      <Button
-                        className="h-10 border border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                        disabled={revokingLink}
-                        onClick={handleRegenerateInviteLink}
-                      >
-                        {revokingLink ? "Revogando..." : "Revogar link atual"}
+                        Exportar backup JSON
                       </Button>
                     </div>
-                    <p className="mt-2 text-xs text-slate-500">
-                      Ao revogar, o link atual deixa de funcionar e um novo link publico e criado
-                      para os proximos convites.
-                    </p>
-                  </div>
-                  <Separator />
-                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/80">
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">Backup e restauracao</p>
-                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                      Exporte este caixa inteiro em JSON para recriar depois com historico, membros, pagamentos e notas.
-                    </p>
-                    <Button
-                      className="mt-3 h-10 bg-slate-900 text-white hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500"
-                      onClick={handleExportBackupJson}
-                    >
-                      Exportar backup JSON
-                    </Button>
-                  </div>
-                  <Separator />
-                  <AddMemberForm caixaId={caixaId} />
-                  <Separator />
-                  <div className="rounded-3xl border border-red-200 bg-red-50 p-4">
-                    <p className="text-sm font-medium text-red-800">Zona de perigo</p>
-                    <p className="mt-1 text-sm text-red-700">
-                      Exclui o caixa por completo, incluindo membros, pagamentos, convites e
-                      vinculos de painel. Ideal para limpar seus testes agora.
-                    </p>
-                    <Button
-                      className="mt-3 h-10 border border-red-300 bg-white text-red-700 hover:bg-red-100"
-                      disabled={deletingCaixa}
-                      onClick={handleDeleteCaixa}
-                    >
-                      {deletingCaixa
-                        ? "Excluindo..."
-                        : confirmingDeleteCaixa
-                          ? "Clique novamente para excluir"
-                          : "Excluir caixa por completo"}
-                    </Button>
+                    <div className="rounded-3xl border border-red-200 bg-red-50 p-4">
+                      <p className="text-sm font-medium text-red-800">Zona de perigo</p>
+                      <p className="mt-1 text-sm text-red-700">
+                        Exclui o caixa por completo, incluindo membros, pagamentos, convites e
+                        vinculos de painel. Ideal para limpar seus testes agora.
+                      </p>
+                      <Button
+                        className="mt-3 h-10 border border-red-300 bg-white text-red-700 hover:bg-red-100"
+                        disabled={deletingCaixa}
+                        onClick={handleDeleteCaixa}
+                      >
+                        {deletingCaixa
+                          ? "Excluindo..."
+                          : confirmingDeleteCaixa
+                            ? "Clique novamente para excluir"
+                            : "Excluir caixa por completo"}
+                      </Button>
+                    </div>
                   </div>
                 </>
               ) : null}
@@ -1427,7 +1554,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                   onChange={(event) => setHistoryMonthFilter(event.target.value)}
                 >
                   <option value="todos">Todos os meses</option>
-                  {Array.from({ length: caixa.totalMeses }, (_, index) => index + 1).map((mes) => (
+                  {Array.from({ length: caixa?.totalMeses ?? 0 }, (_, index) => index + 1).map((mes) => (
                     <option key={mes} value={String(mes)}>
                       Mes {mes}
                     </option>
@@ -1523,6 +1650,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
           </CardContent>
         </Card>
 
+        {false ? (
         <Card className="border-white/70 bg-white/90 shadow-sm dark:border-white/10 dark:bg-slate-950/80">
           <CardHeader>
             <CardTitle className="text-slate-900 dark:text-white">Graficos do caixa</CardTitle>
@@ -1610,14 +1738,16 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
             </div>
           </CardContent>
         </Card>
+        ) : null}
 
+        {false ? (
         <Card className="border-white/70 bg-white/90 shadow-sm dark:border-white/10 dark:bg-slate-950/80">
           <CardHeader>
             <CardTitle className="text-slate-900 dark:text-white">Notas por mes</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
-              {Array.from({ length: caixa.totalMeses }, (_, index) => index + 1).map((mes) => {
+              {Array.from({ length: caixa?.totalMeses ?? 0 }, (_, index) => index + 1).map((mes) => {
                 const nota = notesByMonth.get(mes);
                 const draft = noteDrafts[mes] ?? nota?.texto ?? "";
                 const hasContent = Boolean((nota?.texto ?? "").trim() || draft.trim());
@@ -1625,9 +1755,9 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                 return (
                   <details
                     key={mes}
-                    open={mes === caixa.mesAtual}
+                    open={mes === caixa?.mesAtual}
                     className={`group overflow-hidden rounded-3xl border ${
-                      mes === caixa.mesAtual
+                      mes === caixa?.mesAtual
                         ? "border-emerald-200 bg-emerald-50"
                         : "border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-slate-900/80"
                     }`}
@@ -1636,7 +1766,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                       <div className="space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-medium text-slate-900 dark:text-white">Mes {mes}</p>
-                          {mes === caixa.mesAtual ? (
+                          {mes === caixa?.mesAtual ? (
                             <Badge className="bg-emerald-100 text-emerald-900 hover:bg-emerald-100">
                               mes atual
                             </Badge>
@@ -1717,6 +1847,222 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
             </div>
           </CardContent>
         </Card>
+        ) : null}
+
+        {chartsModalOpen ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-md">
+            <Card className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-[2.4rem] border-white/70 bg-white/95 dark:border-white/10 dark:bg-[rgba(15,23,42,0.96)]">
+              <CardHeader>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-slate-900 dark:text-white">Graficos do caixa</CardTitle>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                      Leitura visual da arrecadacao, adimplencia e distribuicao do mes atual.
+                    </p>
+                  </div>
+                  <Button variant="outline" onClick={() => setChartsModalOpen(false)}>
+                    Fechar
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-6 xl:grid-cols-2">
+                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/80">
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">Arrecadacao por mes</p>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                      Comparativo entre valores confirmados e pendentes em cada mes.
+                    </p>
+                    <div className="mt-4 h-72">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartMonthData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                          <XAxis dataKey="mes" stroke="#64748b" fontSize={12} />
+                          <YAxis stroke="#64748b" fontSize={12} />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey="confirmado" name="Confirmado" fill="#059669" radius={[8, 8, 0, 0]} />
+                          <Bar dataKey="pendente" name="Pendente" fill="#d97706" radius={[8, 8, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/80">
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">Tendencia de adimplencia</p>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                      Percentual de membros confirmados em cada mes.
+                    </p>
+                    <div className="mt-4 h-72">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartMonthData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                          <XAxis dataKey="mes" stroke="#64748b" fontSize={12} />
+                          <YAxis stroke="#64748b" fontSize={12} domain={[0, 100]} />
+                          <Tooltip formatter={(value) => `${String(value ?? 0)}%`} />
+                          <Legend />
+                          <Line
+                            type="monotone"
+                            dataKey="adimplencia"
+                            name="Adimplencia"
+                            stroke="#2563eb"
+                            strokeWidth={3}
+                            dot={{ fill: "#2563eb", r: 4 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/80">
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">Distribuicao do mes atual</p>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                    Panorama rapido dos status de pagamento no mes atual.
+                  </p>
+                  <div className="mt-4 h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={currentMonthDistribution}
+                          dataKey="value"
+                          nameKey="name"
+                          innerRadius={70}
+                          outerRadius={110}
+                          paddingAngle={4}
+                        >
+                          {currentMonthDistribution.map((entry) => (
+                            <Cell key={entry.name} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : null}
+
+        {notesModalOpen ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-md">
+            <Card className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-[2.4rem] border-white/70 bg-white/95 dark:border-white/10 dark:bg-[rgba(15,23,42,0.96)]">
+              <CardHeader>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-slate-900 dark:text-white">Notas por mes</CardTitle>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                      Observacoes do gerente e historico de combinados organizados por mes.
+                    </p>
+                  </div>
+                  <Button variant="outline" onClick={() => setNotesModalOpen(false)}>
+                    Fechar
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {Array.from({ length: caixa?.totalMeses ?? 0 }, (_, index) => index + 1).map((mes) => {
+                  const nota = notesByMonth.get(mes);
+                  const draft = noteDrafts[mes] ?? nota?.texto ?? "";
+                  const hasContent = Boolean((nota?.texto ?? "").trim() || draft.trim());
+
+                  return (
+                    <details
+                      key={mes}
+                      open={mes === caixa?.mesAtual}
+                      className={`group overflow-hidden rounded-3xl border ${
+                        mes === caixa?.mesAtual
+                          ? "border-emerald-200 bg-emerald-50"
+                          : "border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-slate-900/80"
+                      }`}
+                    >
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4">
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-medium text-slate-900 dark:text-white">Mes {mes}</p>
+                            {mes === caixa?.mesAtual ? (
+                              <Badge className="bg-emerald-100 text-emerald-900 hover:bg-emerald-100">
+                                mes atual
+                              </Badge>
+                            ) : null}
+                            {hasContent ? (
+                              <Badge className="bg-sky-100 text-sky-900 hover:bg-sky-100">
+                                com nota
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-slate-200 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200">
+                                vazio
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-slate-600 dark:text-slate-300">
+                            {nota?.texto?.trim()
+                              ? `${nota.texto.trim().slice(0, 90)}${nota.texto.trim().length > 90 ? "..." : ""}`
+                              : "Sem observacoes registradas neste mes."}
+                          </p>
+                        </div>
+                        <span className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500 transition group-open:rotate-180 dark:text-slate-400">
+                          ▼
+                        </span>
+                      </summary>
+
+                      <div className="border-t border-black/5 px-4 py-4 dark:border-white/10">
+                        {isGerente ? (
+                          <div className="space-y-3">
+                            <textarea
+                              aria-label={`Nota do mes ${mes}`}
+                              aria-describedby={`nota-mes-${mes}-help`}
+                              className="min-h-28 w-full rounded-2xl border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              placeholder="Ex.: Joao pagou em dois depositos por acordo."
+                              value={draft}
+                              onChange={(event) =>
+                                setNoteDrafts((current) => ({
+                                  ...current,
+                                  [mes]: event.target.value,
+                                }))
+                              }
+                            />
+                            <p
+                              id={`nota-mes-${mes}-help`}
+                              className="text-xs text-slate-500 dark:text-slate-400"
+                            >
+                              Apenas o gerente pode criar, editar ou excluir esta nota.
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                className="h-9 bg-slate-900 text-white hover:bg-slate-800"
+                                disabled={savingNoteMonth === mes}
+                                onClick={() => handleSaveNote(mes)}
+                              >
+                                {savingNoteMonth === mes ? "Salvando..." : nota ? "Salvar edicao" : "Salvar nota"}
+                              </Button>
+                              {nota ? (
+                                <Button
+                                  className="h-9 border border-red-200 bg-white text-red-700 hover:bg-red-50"
+                                  disabled={deletingNoteId === nota.id}
+                                  onClick={() => handleDeleteNote(nota)}
+                                >
+                                  {deletingNoteId === nota.id ? "Removendo..." : "Excluir nota"}
+                                </Button>
+                              ) : null}
+                            </div>
+                          </div>
+                        ) : nota ? (
+                          <p className="text-sm leading-6 text-slate-700 dark:text-slate-200">{nota.texto}</p>
+                        ) : (
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                            Nenhuma nota registrada para este mes.
+                          </p>
+                        )}
+                      </div>
+                    </details>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          </div>
+        ) : null}
       </div>
     </main>
   );

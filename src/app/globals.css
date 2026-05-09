@@ -52,35 +52,35 @@
   }
 
   .dark {
-    --background: 149 23% 10%;
-    --foreground: 44 45% 96%;
-    --card: 149 22% 14%;
-    --card-foreground: 44 45% 96%;
-    --popover: 149 22% 14%;
-    --popover-foreground: 44 45% 96%;
-    --primary: 132 41% 92%;
-    --primary-foreground: 148 29% 11%;
-    --secondary: 149 18% 19%;
-    --secondary-foreground: 44 45% 96%;
-    --muted: 149 18% 17%;
-    --muted-foreground: 145 10% 71%;
+    --background: 222 32% 9%;
+    --foreground: 210 20% 96%;
+    --card: 222 28% 12%;
+    --card-foreground: 210 20% 96%;
+    --popover: 222 28% 12%;
+    --popover-foreground: 210 20% 96%;
+    --primary: 148 47% 34%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 20% 17%;
+    --secondary-foreground: 210 20% 96%;
+    --muted: 220 18% 15%;
+    --muted-foreground: 215 14% 72%;
     --accent: 43 82% 65%;
     --accent-foreground: 148 29% 11%;
     --destructive: oklch(0.704 0.191 22.216);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 14%);
-    --ring: 132 41% 92%;
-    --chart-1: 132 41% 92%;
+    --ring: 148 47% 34%;
+    --chart-1: 148 47% 34%;
     --chart-2: 43 82% 65%;
     --chart-3: 148 41% 34%;
     --chart-4: 145 10% 71%;
     --chart-5: 44 45% 96%;
-    --sidebar: 149 22% 14%;
-    --sidebar-foreground: 44 45% 96%;
-    --sidebar-primary: 132 41% 92%;
-    --sidebar-primary-foreground: 148 29% 11%;
-    --sidebar-accent: 149 18% 19%;
-    --sidebar-accent-foreground: 44 45% 96%;
+    --sidebar: 222 28% 12%;
+    --sidebar-foreground: 210 20% 96%;
+    --sidebar-primary: 148 47% 34%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 20% 17%;
+    --sidebar-accent-foreground: 210 20% 96%;
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: 132 41% 92%;
   }
@@ -105,9 +105,9 @@
 
   .dark body {
     background-image:
-      radial-gradient(circle at top left, rgba(47, 114, 88, 0.22), transparent 18%),
-      radial-gradient(circle at top right, rgba(239, 195, 94, 0.1), transparent 20%),
-      linear-gradient(180deg, #101b16 0%, #162720 100%);
+      radial-gradient(circle at top left, rgba(29, 78, 60, 0.18), transparent 18%),
+      radial-gradient(circle at top right, rgba(246, 200, 95, 0.06), transparent 18%),
+      linear-gradient(180deg, #0b1220 0%, #111827 100%);
   }
 
   a {
@@ -134,9 +134,9 @@
 
   .dark .brand-shell {
     background-image:
-      radial-gradient(circle at top left, rgba(47, 114, 88, 0.24), transparent 18%),
-      radial-gradient(circle at 80% 12%, rgba(239, 195, 94, 0.08), transparent 18%),
-      linear-gradient(180deg, #101b16 0%, #162720 100%);
+      radial-gradient(circle at top left, rgba(29, 78, 60, 0.18), transparent 18%),
+      radial-gradient(circle at 80% 12%, rgba(246, 200, 95, 0.06), transparent 16%),
+      linear-gradient(180deg, #0b1220 0%, #111827 100%);
   }
 
   .brand-card {
@@ -144,10 +144,14 @@
   }
 
   .dark .brand-card {
-    @apply border-white/10 bg-[rgba(22,39,32,0.9)] text-white shadow-[0_18px_40px_rgba(0,0,0,0.25)];
+    @apply border-white/10 bg-[rgba(15,23,42,0.86)] text-white shadow-[0_18px_40px_rgba(0,0,0,0.34)];
   }
 
   .brand-pill {
     @apply inline-flex items-center rounded-full border border-[#c7ddcf] bg-white px-4 py-2 text-sm font-medium text-[#214F3F];
+  }
+
+  .dark .brand-pill {
+    @apply border-white/10 bg-white/5 text-slate-100;
   }
 }

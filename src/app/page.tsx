@@ -29,9 +29,9 @@ const members = [
 ];
 
 const steps = [
-  ["wallet", "Crie uma caixa", "Defina valor, membros, meses e objetivo do grupo.", "01"],
-  ["users", "Cadastre membros", "Adicione participantes e compartilhe o ID do caixa.", "02"],
-  ["chart", "Acompanhe", "Controle pagamentos, rodizios, relatorios e progresso em tempo real.", "03"],
+  ["wallet", "Crie o caixa", "Defina valor, membros, meses e objetivo do grupo.", "01"],
+  ["users", "Cadastre membros", "O gerente adiciona participantes sem exigir conta de todos.", "02"],
+  ["chart", "Acompanhe tudo", "Controle pagamentos, rodizio, relatorios e compartilhamentos.", "03"],
 ] as const;
 
 function Logo() {
@@ -94,7 +94,7 @@ function DashboardCard({ compact = false }: { compact?: boolean }) {
     >
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2 text-xl font-black text-[#052E1B] dark:text-slate-50">
-          <ChartColumnIncreasing className="h-5 w-5" /> Painel do caixa
+          <ChartColumnIncreasing className="h-5 w-5" /> Painel do gerente
         </div>
         <Bell className="h-5 w-5 text-[#052E1B] dark:text-slate-300" />
       </div>
@@ -229,7 +229,7 @@ export default function Home() {
                 </div>
                 <Link href="/painel">
                   <Button className="rounded-2xl bg-gradient-to-r from-[#0B6B3A] to-[#052E1B] px-7 py-3 font-black text-white shadow-lg shadow-[#052E1B]/20 transition hover:-translate-y-0.5 hover:shadow-xl">
-                    Ir para o painel
+                    Acessar painel
                   </Button>
                 </Link>
                 <Button variant="outline" className="rounded-2xl" onClick={() => logout()}>
@@ -243,12 +243,12 @@ export default function Home() {
                     variant="outline"
                     className="rounded-2xl border-[#052E1B] px-7 py-3 font-black text-[#052E1B] transition hover:-translate-y-0.5 hover:bg-emerald-50"
                   >
-                    Entrar
+                    Entrar como gerente
                   </Button>
                 </Link>
                 <Link href="/cadastro">
                   <Button className="rounded-2xl bg-gradient-to-r from-[#0B6B3A] to-[#052E1B] px-7 py-3 font-black text-white shadow-lg shadow-[#052E1B]/20 transition hover:-translate-y-0.5 hover:shadow-xl">
-                    Criar conta de gerente
+                    Criar meu caixa
                   </Button>
                 </Link>
               </>
@@ -270,12 +270,12 @@ export default function Home() {
                     <Star className="h-4 w-4 fill-current text-amber-400" /> Fase Beta
                   </div>
 
-                  <h1 className="mt-5 max-w-[7.5ch] text-5xl font-black leading-[.92] tracking-tight text-[#052E1B] dark:text-slate-50 md:text-7xl">
-                    Seu caixa organizadinho
+                  <h1 className="mt-5 max-w-[8.5ch] text-5xl font-black leading-[.92] tracking-tight text-[#052E1B] dark:text-slate-50 md:text-7xl">
+                    Controle seu caixa em um so lugar
                   </h1>
                   <p className="mt-6 max-w-xl text-xl leading-8 text-[#475569] dark:text-slate-300">
-                    Controle caixas, pagamentos, membros e rodizios como gerente, sem depender de
-                    login dos participantes.
+                    Controle seu caixa, pagamentos, membros e rodizios em um so lugar. O gerente
+                    organiza tudo e compartilha as informacoes com o grupo.
                   </p>
 
                   <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -283,7 +283,7 @@ export default function Home() {
                       <>
                         <Link href="/painel">
                           <Button className="inline-flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-[#0B6B3A] to-[#052E1B] px-8 py-4 font-black text-white shadow-xl shadow-[#052E1B]/20 transition hover:-translate-y-0.5 hover:shadow-2xl">
-                            Continuar no painel <ArrowRight className="h-4 w-4" />
+                            Acessar painel <ArrowRight className="h-4 w-4" />
                           </Button>
                         </Link>
                         <div className="rounded-2xl border border-[#D7E7DA] bg-white/80 px-5 py-4">
@@ -297,7 +297,7 @@ export default function Home() {
                       <>
                         <Link href="/cadastro">
                           <Button className="inline-flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-[#0B6B3A] to-[#052E1B] px-8 py-4 font-black text-white shadow-xl shadow-[#052E1B]/20 transition hover:-translate-y-0.5 hover:shadow-2xl">
-                            Criar conta de gerente <ArrowRight className="h-4 w-4" />
+                            Criar meu caixa <ArrowRight className="h-4 w-4" />
                           </Button>
                         </Link>
                         <Link href="/login">
@@ -310,6 +310,15 @@ export default function Home() {
                         </Link>
                       </>
                     )}
+                  </div>
+
+                  <div className="mt-6 grid max-w-xl gap-2 text-sm text-[#475569] dark:text-slate-300 sm:grid-cols-2">
+                    <span className="rounded-2xl border border-[#D7E7DA] bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+                      Gerente cadastra membros e controla pagamentos.
+                    </span>
+                    <span className="rounded-2xl border border-[#D7E7DA] bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+                      Em breve, consulta publica pelo ID do caixa.
+                    </span>
                   </div>
 
                   <div className="max-w-[34rem]">

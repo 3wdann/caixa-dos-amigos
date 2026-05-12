@@ -317,7 +317,7 @@ export function CreateCaixaForm({
 
         {modoCriacao === "andamento" ? (
           <div className="rounded-[1.5rem] border border-[#ecd69f] bg-[#fff8e7] px-4 py-3 text-sm text-[#8B6A11] dark:border-sky-400/20 dark:bg-sky-500/10 dark:text-sky-100">
-            Depois de cadastrar, voce pode convidar os membros que faltam, ajustar pagamentos deste mes
+            Depois de cadastrar, voce pode registrar os membros que faltam, ajustar pagamentos deste mes
             e continuar o caixa sem recomecar o historico manualmente.
           </div>
         ) : null}

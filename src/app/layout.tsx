@@ -19,7 +19,7 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "Caixa dos Amigos",
-  description: "Seu caixa organizadinho para gerenciar grupos rotativos com transparência.",
+  description: "Controle caixas, pagamentos, membros e rodizios como gerente.",
 };
 
 export default function RootLayout({

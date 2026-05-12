@@ -13,14 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { initialsFromName } from "@/lib/avatar";
 import { useOnlineStatus } from "@/hooks/use-online-status";
-import {
-  subscribeManagedCaixas,
-  subscribeMemberCaixas,
-  subscribePendingInvitesByEmail,
-} from "@/lib/firestore";
+import { subscribeManagedCaixas } from "@/lib/firestore";
 import { readOfflineCache, writeOfflineCache } from "@/lib/offline-cache";
 import { getPlanoLabel } from "@/lib/plano";
-import type { CaixaResumo, Convite } from "@/lib/types";
+import type { CaixaResumo } from "@/lib/types";
 
 export function DashboardPageClient() {
   const { user, profile, logout } = useAuth();
@@ -28,8 +24,6 @@ export function DashboardPageClient() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [continueModalOpen, setContinueModalOpen] = useState(false);
   const [managedCaixas, setManagedCaixas] = useState<CaixaResumo[]>([]);
-  const [memberCaixas, setMemberCaixas] = useState<CaixaResumo[]>([]);
-  const [pendingInvites, setPendingInvites] = useState<Convite[]>([]);
   const [cacheReady, setCacheReady] = useState(false);
   const activeManagedCaixas = managedCaixas.filter((caixa) => caixa.status === "ativo").length;
   const freeManagedLimitReached = profile?.plano === "free" && activeManagedCaixas >= 2;
@@ -44,14 +38,10 @@ export function DashboardPageClient() {
 
       const cached = await readOfflineCache<{
         managedCaixas: CaixaResumo[];
-        memberCaixas: CaixaResumo[];
-        pendingInvites: Convite[];
       }>(`dashboard:${user.uid}:${profile.email}`);
 
       if (cached) {
         setManagedCaixas(cached.managedCaixas ?? []);
-        setMemberCaixas(cached.memberCaixas ?? []);
-        setPendingInvites(cached.pendingInvites ?? []);
       }
 
       setCacheReady(true);
@@ -66,13 +56,9 @@ export function DashboardPageClient() {
     }
 
     const unsubscribeManaged = subscribeManagedCaixas(user.uid, setManagedCaixas);
-    const unsubscribeMember = subscribeMemberCaixas(user.uid, setMemberCaixas);
-    const unsubscribeInvites = subscribePendingInvitesByEmail(profile.email, setPendingInvites);
 
     return () => {
       unsubscribeManaged();
-      unsubscribeMember();
-      unsubscribeInvites();
     };
   }, [profile, user]);
 
@@ -84,13 +70,11 @@ export function DashboardPageClient() {
 
       await writeOfflineCache(`dashboard:${user.uid}:${profile.email}`, {
         managedCaixas,
-        memberCaixas,
-        pendingInvites,
       });
     }
 
     void persistCache();
-  }, [cacheReady, managedCaixas, memberCaixas, pendingInvites, profile, user]);
+  }, [cacheReady, managedCaixas, profile, user]);
 
   useEffect(() => {
     function handleCaixaCreated(event: Event) {
@@ -142,7 +126,7 @@ export function DashboardPageClient() {
                 <p className="text-sm text-[#657469] dark:text-slate-400">Seu painel</p>
                 <h1 className="text-2xl font-semibold text-[#13231C] dark:text-white">Ola, {profile.nome}</h1>
                 <p className="text-sm text-[#657469] dark:text-slate-300">
-                  Controle caixas, membros, pagamentos e rodizios como gerente.
+                  Controle caixas, pagamentos, membros e rodizios em um so lugar.
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <Badge className="bg-[#fff4d8] text-[#8B6A11] hover:bg-[#fff4d8]">
@@ -200,13 +184,13 @@ export function DashboardPageClient() {
               <div className="rounded-[1.6rem] border border-[#ecd69f] bg-[#fff9ec] p-5 dark:border-amber-300/15 dark:bg-[rgba(15,23,42,0.72)]">
                 <p className="text-sm text-[#8B6A11] dark:text-slate-300">Modo gerente</p>
                 <p className="mt-3 text-lg font-semibold text-[#13231C] dark:text-white">Controle centralizado</p>
-                <p className="mt-2 text-sm text-[#8B6A11] dark:text-slate-400">Membros consultam pelo ID/link do caixa.</p>
+                <p className="mt-2 text-sm text-[#8B6A11] dark:text-slate-400">Consulta publica por ID entra na proxima etapa.</p>
               </div>
             </div>
             <div className="rounded-[1.6rem] border border-[#dbe7df] bg-[#f9fbf9] p-4 text-sm text-[#657469] dark:border-white/10 dark:bg-[rgba(15,23,42,0.72)] dark:text-slate-200">
               Voce e o gerente. Cadastre os membros, acompanhe pagamentos e compartilhe o ID do
               caixa com quem precisa consultar. No plano Free, voce pode ter ate 2 caixas ativos
-              como gerente.
+              como gerente. Em breve, cada caixa tera um ID publico para consulta dos participantes.
             </div>
           </CardContent>
         </Card>
@@ -244,7 +228,7 @@ export function DashboardPageClient() {
                 Use o botao <span className="font-medium">Novo caixa</span> para abrir seu primeiro
                 grupo ou <span className="font-medium">Continuar com caixa ja existente</span> para
                 trazer um grupo que ja esta rodando fora do app. Depois, cadastre os membros,
-                acompanhe pagamentos e compartilhe o ID do caixa com quem precisar consultar.
+                acompanhe pagamentos e organize o rodizio em um painel de gerente.
               </p>
             </CardContent>
           </Card>
@@ -301,7 +285,7 @@ export function DashboardPageClient() {
                   userId={user.uid}
                   mode="andamento"
                   title="Continuar com caixa ja existente"
-                  description="Informe os dados do grupo, em qual mes ele esta hoje e siga com os convites e pagamentos sem recomecar o ciclo."
+                  description="Informe os dados do grupo, em qual mes ele esta hoje e siga com membros e pagamentos sem recomecar o ciclo."
                   showBackupRestore={false}
                   onSuccess={() => setContinueModalOpen(false)}
                 />

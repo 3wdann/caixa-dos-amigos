@@ -207,7 +207,7 @@ export function LoginForm() {
             className="font-medium text-emerald-700 hover:text-emerald-800 dark:text-emerald-300 dark:hover:text-emerald-200"
             href={next === "/painel" ? "/cadastro" : `/cadastro?next=${encodeURIComponent(next)}`}
           >
-            Criar conta de gerente
+            Criar meu caixa
           </Link>
         </p>
       </CardContent>

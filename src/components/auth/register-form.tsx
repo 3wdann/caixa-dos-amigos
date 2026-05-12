@@ -142,7 +142,7 @@ export function RegisterForm() {
   return (
     <Card className="brand-card rounded-[1.9rem]">
       <CardHeader className="space-y-2">
-        <CardTitle className="text-3xl text-[#13231C] dark:text-white">Criar conta de gerente</CardTitle>
+        <CardTitle className="text-3xl text-[#13231C] dark:text-white">Criar meu caixa</CardTitle>
         <CardDescription className="text-sm text-[#657469] dark:text-slate-300">
           Monte seu acesso para criar caixas, cadastrar membros e acompanhar pagamentos.
         </CardDescription>
@@ -216,7 +216,7 @@ export function RegisterForm() {
             className="h-12 w-full rounded-full bg-primary text-primary-foreground shadow-[0_18px_40px_rgba(24,31,60,0.22)] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Criando..." : "Criar conta de gerente"}
+            {isSubmitting ? "Criando..." : "Criar meu caixa"}
           </button>
         </form>
 
@@ -226,7 +226,7 @@ export function RegisterForm() {
           onClick={handleGoogleSignUp}
           disabled={pendingGoogle}
         >
-          {pendingGoogle ? "Conectando..." : "Criar conta de gerente com Google"}
+          {pendingGoogle ? "Conectando..." : "Criar meu caixa com Google"}
         </button>
 
         {enableAppleAuth ? (

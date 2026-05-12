@@ -1281,15 +1281,16 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                       <div className="space-y-3">
                         <div>
                           <p className="text-sm font-medium text-slate-900 dark:text-white">
-                            Convites e entrada no caixa
+                            Membros e compartilhamento
                           </p>
                           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                            Use o mesmo bloco para compartilhar o convite e adicionar membros por email.
+                            Cadastre participantes e compartilhe as informacoes do caixa pelo link
+                            enquanto a consulta publica por ID e preparada.
                           </p>
                         </div>
                         <div className="rounded-2xl border border-[#dbe7df] bg-white px-4 py-3 dark:border-white/10 dark:bg-[rgba(15,23,42,0.82)]">
                           <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#657469] dark:text-slate-400">
-                            Link do convite
+                            Link e ID do caixa
                           </p>
                           <p className="mt-1 text-sm font-semibold text-[#13231C] dark:text-white">
                             {caixa.nome} • {caixaPublicId}
@@ -1317,8 +1318,8 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                           </Button>
                         </div>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Ao revogar, o link atual deixa de funcionar e um novo link publico e criado
-                          para os proximos convites.
+                          Ao revogar, o link atual deixa de funcionar e um novo link e criado para
+                          os proximos compartilhamentos do gerente.
                         </p>
                       </div>
 
@@ -1372,7 +1373,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
             <CardContent className="space-y-4">
               {membros.length === 0 && pendingInvites.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-5 text-sm text-slate-600">
-                  Ainda nao ha membros neste caixa. O gerente pode adicionar participantes por email.
+                  Ainda nao ha membros neste caixa. O gerente pode cadastrar participantes por email.
                 </div>
               ) : (
                 <>
@@ -1485,7 +1486,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                         <div>
                           <p className="font-medium text-[#13231C] dark:text-white">{convite.emailDestino}</p>
                           <p className="text-sm text-[#657469]">
-                            Convite registrado. Aguardando aceite para entrar no caixa.
+                            Membro cadastrado pelo gerente. Aguardando confirmacao de entrada.
                           </p>
                         </div>
                       </div>

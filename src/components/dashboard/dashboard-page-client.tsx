@@ -1,8 +1,6 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 import { CaixaCard } from "@/components/dashboard/caixa-card";
 import { CreateCaixaForm } from "@/components/dashboard/create-caixa-form";
@@ -16,7 +14,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { initialsFromName } from "@/lib/avatar";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import {
-  acceptInvite,
   subscribeManagedCaixas,
   subscribeMemberCaixas,
   subscribePendingInvitesByEmail,
@@ -33,15 +30,11 @@ export function DashboardPageClient() {
   const [managedCaixas, setManagedCaixas] = useState<CaixaResumo[]>([]);
   const [memberCaixas, setMemberCaixas] = useState<CaixaResumo[]>([]);
   const [pendingInvites, setPendingInvites] = useState<Convite[]>([]);
-  const [joiningInviteToken, setJoiningInviteToken] = useState<string | null>(null);
   const [cacheReady, setCacheReady] = useState(false);
   const activeManagedCaixas = managedCaixas.filter((caixa) => caixa.status === "ativo").length;
-  const activeMemberCaixas = memberCaixas.filter((caixa) => caixa.status === "ativo").length;
   const freeManagedLimitReached = profile?.plano === "free" && activeManagedCaixas >= 2;
   const hasManagedCaixas = managedCaixas.length > 0;
-  const hasMemberCaixas = memberCaixas.length > 0;
-  const hasPendingInvites = pendingInvites.length > 0;
-  const hasDashboardSections = hasManagedCaixas || hasMemberCaixas || hasPendingInvites;
+  const hasDashboardSections = hasManagedCaixas;
 
   useEffect(() => {
     async function loadCache() {
@@ -124,25 +117,6 @@ export function DashboardPageClient() {
     };
   }, []);
 
-  async function handleAcceptPendingInvite(token: string) {
-    if (!user || !profile) {
-      return;
-    }
-
-    try {
-      setJoiningInviteToken(token);
-      const result = await acceptInvite(token, user, profile);
-      toast.success(`Voce entrou no caixa ${result.caixaNome}.`);
-      window.location.assign(`/painel/caixas/${result.caixaId}`);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Nao foi possivel concluir sua entrada.";
-      toast.error(message);
-    } finally {
-      setJoiningInviteToken(null);
-    }
-  }
-
   if (!profile || !user) {
     return null;
   }
@@ -168,7 +142,7 @@ export function DashboardPageClient() {
                 <p className="text-sm text-[#657469] dark:text-slate-400">Seu painel</p>
                 <h1 className="text-2xl font-semibold text-[#13231C] dark:text-white">Ola, {profile.nome}</h1>
                 <p className="text-sm text-[#657469] dark:text-slate-300">
-                  Organize seus caixas e acompanhe o mes atual.
+                  Controle caixas, membros, pagamentos e rodizios como gerente.
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <Badge className="bg-[#fff4d8] text-[#8B6A11] hover:bg-[#fff4d8]">
@@ -209,41 +183,38 @@ export function DashboardPageClient() {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm uppercase tracking-[0.2em] text-[#2F7258] dark:text-[#E2F3E7]">Resumo rapido</p>
               <p className="text-sm text-[#657469] dark:text-slate-300">
-                Beta aberto para cadastros e testes controlados.
+                Visao focada no gerente do caixa.
               </p>
             </div>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-3">
               <div className="rounded-[1.6rem] bg-[#214F3F] p-5 text-white shadow-[0_18px_36px_rgba(33,79,63,0.2)]">
-                <p className="text-sm text-white/75">Gerencio</p>
+                <p className="text-sm text-white/75">Caixas que gerencio</p>
                 <p className="mt-3 text-3xl font-semibold">{managedCaixas.length}</p>
                 <p className="mt-2 text-sm text-white/75">Ativos: {activeManagedCaixas} de 2 no Free</p>
               </div>
               <div className="rounded-[1.6rem] border border-[#dbe7df] bg-[#F6FBF7] p-5 dark:border-white/10 dark:bg-[rgba(15,23,42,0.72)]">
-                <p className="text-sm text-[#657469] dark:text-slate-300">Participo</p>
-                <p className="mt-3 text-3xl font-semibold text-[#13231C] dark:text-white">{memberCaixas.length}</p>
-                <p className="mt-2 text-sm text-[#657469] dark:text-slate-400">Ativos: {activeMemberCaixas} de 2 no Free</p>
-              </div>
-              <div className="rounded-[1.6rem] border border-[#ecd69f] bg-[#fff9ec] p-5 dark:border-amber-300/15 dark:bg-[rgba(15,23,42,0.72)]">
-                <p className="text-sm text-[#8B6A11] dark:text-slate-300">Convites pendentes</p>
-                <p className="mt-3 text-3xl font-semibold text-[#13231C] dark:text-white">{pendingInvites.length}</p>
-                <p className="mt-2 text-sm text-[#8B6A11] dark:text-slate-400">Aguardando seu aceite</p>
-              </div>
-              <div className="rounded-[1.6rem] border border-[#dbe7df] bg-white p-5 dark:border-white/10 dark:bg-[rgba(15,23,42,0.72)]">
                 <p className="text-sm text-[#657469] dark:text-slate-300">Plano atual</p>
                 <p className="mt-3 text-3xl font-semibold text-[#13231C] dark:text-white">{getPlanoLabel(profile.plano)}</p>
                 <p className="mt-2 text-sm text-[#657469] dark:text-slate-400">Versao beta em validacao</p>
               </div>
+              <div className="rounded-[1.6rem] border border-[#ecd69f] bg-[#fff9ec] p-5 dark:border-amber-300/15 dark:bg-[rgba(15,23,42,0.72)]">
+                <p className="text-sm text-[#8B6A11] dark:text-slate-300">Modo gerente</p>
+                <p className="mt-3 text-lg font-semibold text-[#13231C] dark:text-white">Controle centralizado</p>
+                <p className="mt-2 text-sm text-[#8B6A11] dark:text-slate-400">Membros consultam pelo ID/link do caixa.</p>
+              </div>
             </div>
             <div className="rounded-[1.6rem] border border-[#dbe7df] bg-[#f9fbf9] p-4 text-sm text-[#657469] dark:border-white/10 dark:bg-[rgba(15,23,42,0.72)] dark:text-slate-200">
-              No plano Free, voce pode ter ate 2 caixas ativos como gerente e ate 2 caixas ativos como membro.
+              Voce e o gerente. Cadastre os membros, acompanhe pagamentos e compartilhe o ID do
+              caixa com quem precisa consultar. No plano Free, voce pode ter ate 2 caixas ativos
+              como gerente.
             </div>
           </CardContent>
         </Card>
 
         {hasDashboardSections ? (
-          <div className="grid gap-6 xl:grid-cols-2">
+          <div className="grid gap-6">
             {hasManagedCaixas ? (
-              <section className="space-y-4 xl:col-span-2" aria-labelledby="managed-caixas-title">
+              <section className="space-y-4" aria-labelledby="managed-caixas-title">
                 <div className="flex items-center justify-between">
                   <h2
                     id="managed-caixas-title"
@@ -252,97 +223,12 @@ export function DashboardPageClient() {
                     Caixas que gerencio
                   </h2>
                   <span className="text-sm text-[#657469] dark:text-slate-400">
-                    Visao do gerente
+                    Gerenciamento principal
                   </span>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {managedCaixas.map((caixa) => (
                     <CaixaCard key={caixa.id} caixa={caixa} href={`/painel/caixas/${caixa.id}`} />
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
-            {hasMemberCaixas ? (
-              <section className="space-y-4" aria-labelledby="member-caixas-title">
-                <div className="flex items-center justify-between">
-                  <h2
-                    id="member-caixas-title"
-                    className="text-xl font-semibold text-[#13231C] dark:text-white"
-                  >
-                    Caixas que participo
-                  </h2>
-                  <span className="text-sm text-[#657469] dark:text-slate-400">
-                    Visao do membro
-                  </span>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
-                  {memberCaixas.map((caixa) => (
-                    <CaixaCard
-                      key={caixa.id}
-                      caixa={caixa}
-                      href={`/painel/caixas/${caixa.id}`}
-                      highlight={caixa.meuStatusNoMes === "pendente"}
-                    />
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
-            {hasPendingInvites ? (
-              <section className="space-y-4" aria-labelledby="pending-invites-title">
-                <div className="flex items-center justify-between">
-                  <h2
-                    id="pending-invites-title"
-                    className="text-xl font-semibold text-slate-900 dark:text-white"
-                  >
-                    Convites pendentes
-                  </h2>
-                  <span className="text-sm text-slate-500 dark:text-slate-400">Por email</span>
-                </div>
-                <div className="grid gap-4">
-                  {pendingInvites.map((convite) => (
-                    <Card key={convite.token} className="border-[#ecd69f] bg-[#fff9ec] dark:border-amber-400/20 dark:bg-amber-500/10">
-                      <CardContent className="space-y-2 p-5">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium text-[#8B6A11]">Convite ativo</p>
-                          <Badge className="bg-[#fff0d6] text-[#b66b1a] hover:bg-[#fff0d6]">
-                            aguardando entrada
-                          </Badge>
-                        </div>
-                        <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                          Caixa: {convite.caixaNome ?? convite.caixaId}
-                        </p>
-                        <p className="text-sm text-slate-600 dark:text-slate-300">
-                          Gerente: {convite.gerenteNome ?? "Gerente do caixa"}
-                        </p>
-                        <p className="text-sm text-slate-600 dark:text-slate-300">
-                          Valor por membro: R$ {(convite.valorMensal ?? 0).toFixed(2)}
-                        </p>
-                        <p className="text-sm text-slate-600 dark:text-slate-300">
-                          Seu email ja foi reconhecido. Aceite o convite para entrar no caixa ou abra
-                          a landing para revisar os detalhes antes.
-                        </p>
-                        <div className="flex flex-col gap-2 pt-2 sm:flex-row">
-                          <button
-                            type="button"
-                            className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-                            disabled={joiningInviteToken === convite.token}
-                            onClick={() => handleAcceptPendingInvite(convite.token)}
-                          >
-                            {joiningInviteToken === convite.token
-                              ? "Entrando..."
-                              : "Entrar nesse caixa"}
-                          </button>
-                          <Link
-                            href={`/entrar?convite=${convite.token}`}
-                            className="inline-flex h-10 items-center justify-center rounded-xl border border-amber-300 bg-white px-4 text-sm font-medium text-amber-900 transition hover:bg-amber-100"
-                          >
-                            Ver convite
-                          </Link>
-                        </div>
-                      </CardContent>
-                    </Card>
                   ))}
                 </div>
               </section>
@@ -357,8 +243,8 @@ export function DashboardPageClient() {
               <p>
                 Use o botao <span className="font-medium">Novo caixa</span> para abrir seu primeiro
                 grupo ou <span className="font-medium">Continuar com caixa ja existente</span> para
-                trazer um grupo que ja esta rodando fora do app. Quando voce receber convites ou
-                participar de outros caixas, os blocos aparecem aqui automaticamente.
+                trazer um grupo que ja esta rodando fora do app. Depois, cadastre os membros,
+                acompanhe pagamentos e compartilhe o ID do caixa com quem precisar consultar.
               </p>
             </CardContent>
           </Card>

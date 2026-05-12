@@ -142,9 +142,9 @@ export function RegisterForm() {
   return (
     <Card className="brand-card rounded-[1.9rem]">
       <CardHeader className="space-y-2">
-        <CardTitle className="text-3xl text-[#13231C] dark:text-white">Criar conta</CardTitle>
+        <CardTitle className="text-3xl text-[#13231C] dark:text-white">Criar conta de gerente</CardTitle>
         <CardDescription className="text-sm text-[#657469] dark:text-slate-300">
-          Monte seu acesso agora e entre no seu primeiro caixa em poucos minutos.
+          Monte seu acesso para criar caixas, cadastrar membros e acompanhar pagamentos.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -160,7 +160,7 @@ export function RegisterForm() {
               {...register("nome")}
             />
             <p id="register-nome-help" className="text-xs text-slate-500 dark:text-slate-400">
-              Nome que aparecera para gerente e membros do caixa.
+              Nome que identificara voce como gerente do caixa.
             </p>
             {errors.nome ? (
               <p id="register-nome-error" className="text-sm text-red-600">
@@ -181,7 +181,7 @@ export function RegisterForm() {
               {...register("email")}
             />
             <p id="register-email-help" className="text-xs text-slate-500 dark:text-slate-400">
-              Esse email sera usado para login, convites e recuperacao de senha.
+              Esse email sera usado para login de gerente e recuperacao de senha.
             </p>
             {errors.email ? (
               <p id="register-email-error" className="text-sm text-red-600">
@@ -216,7 +216,7 @@ export function RegisterForm() {
             className="h-12 w-full rounded-full bg-primary text-primary-foreground shadow-[0_18px_40px_rgba(24,31,60,0.22)] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Criando..." : "Criar conta"}
+            {isSubmitting ? "Criando..." : "Criar conta de gerente"}
           </button>
         </form>
 
@@ -226,7 +226,7 @@ export function RegisterForm() {
           onClick={handleGoogleSignUp}
           disabled={pendingGoogle}
         >
-          {pendingGoogle ? "Conectando..." : "Criar conta com Google"}
+          {pendingGoogle ? "Conectando..." : "Criar conta de gerente com Google"}
         </button>
 
         {enableAppleAuth ? (

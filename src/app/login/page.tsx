@@ -23,11 +23,11 @@ export default function LoginPage() {
                 id="login-title"
                 className="max-w-xl text-4xl font-semibold tracking-tight text-[#13231C] dark:text-slate-50 sm:text-5xl"
               >
-                Seu caixa organizadinho, no ritmo do grupo.
+                Entre para gerenciar seus caixas com clareza.
               </h1>
               <p className="max-w-xl text-base leading-7 text-[#657469] dark:text-slate-300">
-                Entre para acompanhar pagamentos, criar novos caixas e deixar o rodizio redondo
-                desde o primeiro mes.
+                Acesso do gerente para controlar membros, pagamentos, rodizios e relatorios em um
+                painel mobile-first.
               </p>
             </div>
           </section>

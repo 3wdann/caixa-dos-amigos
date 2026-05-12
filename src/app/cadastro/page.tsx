@@ -23,11 +23,11 @@ export default function CadastroPage() {
                 id="cadastro-title"
                 className="max-w-xl text-4xl font-semibold tracking-tight text-[#13231C] dark:text-slate-50 sm:text-5xl"
               >
-                Crie sua conta e monte o primeiro caixa do jeito certo.
+                Crie sua conta de gerente e monte o primeiro caixa.
               </h1>
               <p className="max-w-xl text-base leading-7 text-[#657469] dark:text-slate-300">
-                O MVP ja cobre autenticacao, criacao de caixas, adicao manual de membros e status
-                basicos de pagamento.
+                O app continua em beta e ja cobre criacao de caixas, membros, pagamentos,
+                rodizios, relatorios e compartilhamento pelo gerente.
               </p>
             </div>
           </section>

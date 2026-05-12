@@ -29,9 +29,9 @@ const members = [
 ];
 
 const steps = [
-  ["wallet", "Crie uma caixa", "Defina o valor, a frequencia e o objetivo da caixinha.", "01"],
-  ["users", "Convide amigos", "Adicione amigos e deixe todo mundo por dentro.", "02"],
-  ["chart", "Acompanhe", "Veja pagamentos, saldo e progresso em tempo real.", "03"],
+  ["wallet", "Crie uma caixa", "Defina valor, membros, meses e objetivo do grupo.", "01"],
+  ["users", "Cadastre membros", "Adicione participantes e compartilhe o ID do caixa.", "02"],
+  ["chart", "Acompanhe", "Controle pagamentos, rodizios, relatorios e progresso em tempo real.", "03"],
 ] as const;
 
 function Logo() {
@@ -248,7 +248,7 @@ export default function Home() {
                 </Link>
                 <Link href="/cadastro">
                   <Button className="rounded-2xl bg-gradient-to-r from-[#0B6B3A] to-[#052E1B] px-7 py-3 font-black text-white shadow-lg shadow-[#052E1B]/20 transition hover:-translate-y-0.5 hover:shadow-xl">
-                    Criar conta
+                    Criar conta de gerente
                   </Button>
                 </Link>
               </>
@@ -274,7 +274,8 @@ export default function Home() {
                     Seu caixa organizadinho
                   </h1>
                   <p className="mt-6 max-w-xl text-xl leading-8 text-[#475569] dark:text-slate-300">
-                    Organize caixinhas com clareza, ritmo e menos cobranca no grupo.
+                    Controle caixas, pagamentos, membros e rodizios como gerente, sem depender de
+                    login dos participantes.
                   </p>
 
                   <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -296,7 +297,7 @@ export default function Home() {
                       <>
                         <Link href="/cadastro">
                           <Button className="inline-flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-[#0B6B3A] to-[#052E1B] px-8 py-4 font-black text-white shadow-xl shadow-[#052E1B]/20 transition hover:-translate-y-0.5 hover:shadow-2xl">
-                            Criar minha conta <ArrowRight className="h-4 w-4" />
+                            Criar conta de gerente <ArrowRight className="h-4 w-4" />
                           </Button>
                         </Link>
                         <Link href="/login">
@@ -304,7 +305,7 @@ export default function Home() {
                             variant="outline"
                             className="rounded-2xl border border-[#052E1B] bg-white/70 px-8 py-4 font-black text-[#052E1B] transition hover:-translate-y-0.5 hover:bg-emerald-50 dark:border-white/10 dark:bg-[rgba(15,23,42,0.72)] dark:text-slate-100 dark:hover:bg-white/8"
                           >
-                            Ja tenho acesso
+                            Entrar como gerente
                           </Button>
                         </Link>
                       </>
@@ -335,7 +336,7 @@ export default function Home() {
               </div>
               <div className="mt-6 flex flex-wrap items-center justify-center gap-2 rounded-3xl bg-gradient-to-r from-[#064E2E] to-[#052E1B] px-5 py-4 text-center font-bold text-white">
                 <ShieldCheck className="h-5 w-5" /> Simples, transparente e feito para{" "}
-                <span className="text-[#F6C85F]">grupos de verdade.</span>
+                <span className="text-[#F6C85F]">gerentes de grupos reais.</span>
               </div>
             </div>
           </div>

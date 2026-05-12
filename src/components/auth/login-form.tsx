@@ -114,7 +114,7 @@ export function LoginForm() {
       <CardHeader className="space-y-2">
         <CardTitle className="text-3xl text-[#13231C] dark:text-white">Entrar</CardTitle>
         <CardDescription className="text-sm text-[#657469] dark:text-slate-300">
-          Acesse seus caixas com email e senha ou continue com Google.
+          Acesse sua conta de gerente com email e senha ou continue com Google.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -131,7 +131,7 @@ export function LoginForm() {
               {...register("email")}
             />
             <p id="login-email-help" className="text-xs text-slate-500 dark:text-slate-400">
-              Use o mesmo email cadastrado no app.
+              Use o email cadastrado para gerenciar seus caixas.
             </p>
             {errors.email ? (
               <p id="login-email-error" className="text-sm text-red-600">
@@ -177,7 +177,7 @@ export function LoginForm() {
             className="h-12 w-full rounded-full bg-primary text-primary-foreground shadow-[0_18px_40px_rgba(24,31,60,0.22)] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Entrando..." : "Entrar"}
+            {isSubmitting ? "Entrando..." : "Entrar como gerente"}
           </button>
         </form>
 
@@ -187,7 +187,7 @@ export function LoginForm() {
           onClick={handleGoogleSignIn}
           disabled={pendingGoogle}
         >
-          {pendingGoogle ? "Conectando..." : "Continuar com Google"}
+          {pendingGoogle ? "Conectando..." : "Entrar com Google"}
         </button>
 
         {enableAppleAuth ? (
@@ -202,12 +202,12 @@ export function LoginForm() {
         ) : null}
 
         <p className="text-center text-sm text-slate-600 dark:text-slate-300" aria-live="polite">
-          Ainda nao tem conta?{" "}
+          Ainda nao tem conta de gerente?{" "}
           <Link
             className="font-medium text-emerald-700 hover:text-emerald-800 dark:text-emerald-300 dark:hover:text-emerald-200"
             href={next === "/painel" ? "/cadastro" : `/cadastro?next=${encodeURIComponent(next)}`}
           >
-            Criar cadastro
+            Criar conta de gerente
           </Link>
         </p>
       </CardContent>

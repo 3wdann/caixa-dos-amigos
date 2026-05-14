@@ -6,7 +6,6 @@ import {
   arrayRemove,
   arrayUnion,
   collection,
-  collectionGroup,
   deleteDoc,
   doc,
   getDoc,
@@ -21,7 +20,8 @@ import {
 
 import { colorFromSeed, initialsFromName } from "@/lib/avatar";
 import { db } from "@/lib/firebase";
-import { canCreateActiveCaixa, canJoinActiveCaixa } from "@/lib/plano";
+import { getProExpirationDate, isRootMasterEmail, MASTER_EMAIL } from "@/lib/master";
+import { canCreateActiveCaixa, canJoinActiveCaixa, getEffectivePlano } from "@/lib/plano";
 import type {
   Caixa,
   CaixaBackupPayload,
@@ -32,6 +32,10 @@ import type {
   Convite,
   CreateCaixaInput,
   PagamentoStatus,
+  PaymentClaim,
+  PublicCaixa,
+  DiscountCoupon,
+  UpgradeRequest,
   UserProfile,
 } from "@/lib/types";
 
@@ -77,6 +81,27 @@ function isoToTimestamp(value: string | null | undefined) {
   return value ? Timestamp.fromDate(new Date(value)) : null;
 }
 
+function generatePublicIdCandidate() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const randomBlock = (length: number) =>
+    Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+
+  return `CXA-${randomBlock(4)}-${randomBlock(4)}`;
+}
+
+async function generateUniquePublicId() {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const candidate = generatePublicIdCandidate();
+    const publicSnapshot = await getDoc(doc(db, "publicCaixas", candidate));
+
+    if (!publicSnapshot.exists()) {
+      return candidate;
+    }
+  }
+
+  throw new Error("Não foi possível gerar um ID público único. Tente novamente.");
+}
+
 async function countActiveCaixasFromPainelIndex(
   userId: string,
   key: "gerencia" | "participa",
@@ -109,6 +134,8 @@ export async function ensureUserProfile(user: User, nome?: string) {
       fotoUrl: user.photoURL,
       cor: colorFromSeed(user.uid),
       plano: "free",
+      planoExpiraEm: null,
+      papel: isRootMasterEmail(user.email) ? "master" : "membro",
       chavePix: null,
       tipoChavePix: null,
       createdAt: serverTimestamp(),
@@ -140,6 +167,17 @@ export async function ensureUserProfile(user: User, nome?: string) {
     updates.cor = colorFromSeed(user.uid);
   }
 
+  if (!current.papel) {
+    updates.papel = isRootMasterEmail(user.email) ? "master" : "membro";
+  }
+
+  const proExpiration = current.planoExpiraEm?.toDate?.();
+
+  if (current.plano === "pro" && proExpiration && proExpiration.getTime() < Date.now()) {
+    updates.plano = "free";
+    updates.planoExpiraEm = null;
+  }
+
   if (Object.keys(updates).length > 1) {
     await updateDoc(userRef, updates);
   }
@@ -160,19 +198,21 @@ export async function createCaixa(
   gerenteId: string,
 ) {
   const activeManagedCaixas = await countActiveCaixasFromPainelIndex(gerenteId, "gerencia");
-  const limit = canCreateActiveCaixa(profile.plano, activeManagedCaixas);
+  const limit = canCreateActiveCaixa(getEffectivePlano(profile), activeManagedCaixas);
 
   if (!limit.allowed) {
     throw new Error(
-      "Seu plano Free permite ate 2 caixas ativos como gerente. Encerre um caixa ou faca upgrade para Pro.",
+      "Seu plano Free permite 1 caixa ativo como gerente. Encerre o caixa ativo ou faca upgrade para Pro.",
     );
   }
 
   const caixaRef = doc(collection(db, "caixas"));
   const linkConvite = crypto.randomUUID().replaceAll("-", "");
+  const publicId = await generateUniquePublicId();
 
   await setDoc(caixaRef, {
     id: caixaRef.id,
+    publicId,
     nome: input.nome,
     descricao: input.descricao,
     gerenteId,
@@ -201,9 +241,11 @@ export async function createCaixa(
   );
 
   await syncInviteSummary(caixaRef.id);
+  await syncPublicCaixa(caixaRef.id);
 
   return {
     id: caixaRef.id,
+    publicId,
     nome: input.nome,
     descricao: input.descricao,
     gerenteId,
@@ -239,7 +281,7 @@ async function syncInviteSummary(caixaId: string) {
   const caixaSnapshot = await getDoc(doc(db, "caixas", caixaId));
 
   if (!caixaSnapshot.exists()) {
-    throw new Error("Caixa nao encontrado para sincronizar convite.");
+    throw new Error("Caixa não encontrado para sincronizar convite.");
   }
 
   const caixa = caixaSnapshot.data() as Caixa;
@@ -277,10 +319,376 @@ async function syncInviteSummary(caixaId: string) {
   );
 }
 
+export async function syncPublicCaixa(caixaId: string) {
+  const caixaSnapshot = await getDoc(doc(db, "caixas", caixaId));
+
+  if (!caixaSnapshot.exists()) {
+    throw new Error("Caixa não encontrado para sincronizar consulta pública.");
+  }
+
+  const caixa = caixaSnapshot.data() as Caixa;
+
+  if (!caixa.publicId) {
+    return null;
+  }
+
+  const gerenteSnapshot = await getDoc(doc(db, "users", caixa.gerenteId));
+  const gerente = gerenteSnapshot.exists() ? (gerenteSnapshot.data() as UserProfile) : null;
+  const membrosSnapshot = await getDocs(collection(db, "caixas", caixaId, "membros"));
+  const pagamentosSnapshot = await getDocs(collection(db, "caixas", caixaId, "pagamentos"));
+  const activeMembers = sortMembersForSchedule(
+    membrosSnapshot.docs
+      .map((snapshot) => snapshot.data() as CaixaMembro)
+      .filter((membro) => membro.status === "ativo"),
+  );
+  const currentMonthStatusMap = new Map(
+    pagamentosSnapshot.docs
+      .map((snapshot) => snapshot.data() as CaixaPagamento)
+      .filter((pagamento) => pagamento.mes === caixa.mesAtual)
+      .map((pagamento) => [pagamento.membroId, pagamento.status] as const),
+  );
+  const recebedorAtual =
+    activeMembers.find((membro) => membro.mesRecebimento === caixa.mesAtual) ?? null;
+
+  const publicData: PublicCaixa = {
+    publicId: caixa.publicId,
+    nome: caixa.nome,
+    descricao: caixa.descricao,
+    gerenteNome: gerente?.nome ?? "Gerente do caixa",
+    valorMensal: caixa.valorMensal,
+    totalPorMes: caixa.totalPorMes,
+    totalMeses: caixa.totalMeses,
+    mesAtual: caixa.mesAtual,
+    status: caixa.status,
+    membrosAtivos: activeMembers.length,
+    recebedorAtualNome: recebedorAtual?.nome ?? null,
+    membros: activeMembers.map((membro) => ({
+      nome: membro.nome,
+      status: membro.status,
+      mesRecebimento: membro.mesRecebimento,
+      ordemSorteio: membro.ordemSorteio,
+      pagamentoStatus: currentMonthStatusMap.get(membro.userId) ?? "sem_pagamento",
+    })),
+    createdAt: caixa.createdAt,
+    updatedAt: null,
+  };
+
+  await setDoc(
+    doc(db, "publicCaixaOwners", caixa.publicId),
+    {
+      publicId: caixa.publicId,
+      caixaId,
+      gerenteId: caixa.gerenteId,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+
+  await setDoc(
+    doc(db, "publicCaixas", caixa.publicId),
+    {
+      ...publicData,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+
+  return publicData;
+}
+
+export async function generatePublicIdForCaixa(caixaId: string) {
+  const caixaRef = doc(db, "caixas", caixaId);
+  const caixaSnapshot = await getDoc(caixaRef);
+
+  if (!caixaSnapshot.exists()) {
+    throw new Error("Caixa não encontrado.");
+  }
+
+  const caixa = caixaSnapshot.data() as Caixa;
+
+  if (caixa.publicId) {
+    await syncPublicCaixa(caixaId);
+    return caixa.publicId;
+  }
+
+  const publicId = await generateUniquePublicId();
+
+  await updateDoc(caixaRef, {
+    publicId,
+    updatedAt: serverTimestamp(),
+  });
+  await syncPublicCaixa(caixaId);
+
+  return publicId;
+}
+
+export async function getPublicCaixaById(publicId: string) {
+  const normalizedPublicId = publicId.trim().toUpperCase();
+
+  if (!normalizedPublicId) {
+    return null;
+  }
+
+  const snapshot = await getDoc(doc(db, "publicCaixas", normalizedPublicId));
+
+  return snapshot.exists() ? (snapshot.data() as PublicCaixa) : null;
+}
+
+export async function createPaymentClaim(input: {
+  publicId: string;
+  nome: string;
+  telefone?: string;
+  mensagem?: string;
+  mes: number;
+}) {
+  const cleanPublicId = input.publicId.trim().toUpperCase();
+  const cleanName = input.nome.trim();
+
+  if (!cleanPublicId) {
+    throw new Error("ID público indisponível.");
+  }
+
+  if (cleanName.length < 2) {
+    throw new Error("Informe seu nome para avisar o gerente.");
+  }
+
+  const claimRef = doc(collection(db, "publicCaixas", cleanPublicId, "paymentClaims"));
+
+  await setDoc(claimRef, {
+    id: claimRef.id,
+    publicId: cleanPublicId,
+    nome: cleanName.slice(0, 80),
+    telefone: input.telefone?.trim().slice(0, 40) || null,
+    mensagem: input.mensagem?.trim().slice(0, 240) || null,
+    mes: input.mes,
+    status: "pending",
+    createdAt: serverTimestamp(),
+  });
+
+  return claimRef.id;
+}
+
+export function subscribePaymentClaims(
+  publicId: string,
+  callback: (claims: PaymentClaim[]) => void,
+) {
+  return onSnapshot(collection(db, "publicCaixas", publicId, "paymentClaims"), (snapshot) => {
+    const claims = snapshot.docs
+      .map((claimSnapshot) => parseDoc<PaymentClaim>(claimSnapshot))
+      .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
+
+    callback(claims);
+  });
+}
+
+export async function requestProUpgrade(profile: UserProfile) {
+  if (getEffectivePlano(profile) === "pro") {
+    throw new Error("Seu plano Pro ja esta ativo.");
+  }
+
+  const existingRequests = await getDocs(
+    query(
+      collection(db, "upgradeRequests"),
+      where("userId", "==", profile.uid),
+      where("status", "==", "pending"),
+    ),
+  );
+
+  if (!existingRequests.empty) {
+    return existingRequests.docs[0].id;
+  }
+
+  const requestRef = doc(collection(db, "upgradeRequests"));
+
+  await setDoc(requestRef, {
+    id: requestRef.id,
+    userId: profile.uid,
+    nome: profile.nome,
+    email: profile.email,
+    planoAtual: profile.plano,
+    planoSolicitado: "pro",
+    status: "pending",
+    origem: "planos",
+    adminEmail: MASTER_EMAIL,
+    aprovadoPor: null,
+    aprovadoAte: null,
+    rejeitadoPor: null,
+    motivoRejeicao: null,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+
+  return requestRef.id;
+}
+
+export function subscribeAllUpgradeRequests(callback: (requests: UpgradeRequest[]) => void) {
+  return onSnapshot(query(collection(db, "upgradeRequests")), (snapshot) => {
+    const requests = snapshot.docs
+      .map((requestSnapshot) => parseDoc<UpgradeRequest>(requestSnapshot))
+      .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
+
+    callback(requests);
+  });
+}
+
+export async function grantProByEmail(email: string, days: number, approvedBy: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const usersSnapshot = await getDocs(
+    query(collection(db, "users"), where("email", "==", normalizedEmail)),
+  );
+
+  if (usersSnapshot.empty) {
+    throw new Error("Nenhum usuário encontrado com esse e-mail.");
+  }
+
+  const expiration = Timestamp.fromDate(getProExpirationDate(days));
+
+  await updateDoc(usersSnapshot.docs[0].ref, {
+    plano: "pro",
+    planoExpiraEm: expiration,
+    updatedAt: serverTimestamp(),
+  });
+
+  await setDoc(doc(collection(db, "adminLogs")), {
+    acao: "grant_pro",
+    email: normalizedEmail,
+    aprovadoPor: approvedBy,
+    dias: Math.max(1, Math.floor(days)),
+    createdAt: serverTimestamp(),
+  });
+}
+
+export async function approveUpgradeRequestByMaster(
+  request: UpgradeRequest,
+  days: number,
+  approvedBy: string,
+) {
+  await grantProByEmail(request.email, days, approvedBy);
+
+  await updateDoc(doc(db, "upgradeRequests", request.id), {
+    status: "approved",
+    aprovadoPor: approvedBy,
+    aprovadoAte: Timestamp.fromDate(getProExpirationDate(days)),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function rejectUpgradeRequestByMaster(
+  request: UpgradeRequest,
+  reason: string,
+  rejectedBy: string,
+) {
+  await updateDoc(doc(db, "upgradeRequests", request.id), {
+    status: "rejected",
+    rejeitadoPor: rejectedBy,
+    motivoRejeicao: reason.trim() || null,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function grantMasterByEmail(email: string, grantedBy: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const usersSnapshot = await getDocs(
+    query(collection(db, "users"), where("email", "==", normalizedEmail)),
+  );
+
+  if (usersSnapshot.empty) {
+    throw new Error("Nenhum usuário encontrado com esse e-mail.");
+  }
+
+  await updateDoc(usersSnapshot.docs[0].ref, {
+    papel: "master",
+    updatedAt: serverTimestamp(),
+  });
+
+  await setDoc(doc(collection(db, "adminLogs")), {
+    acao: "grant_master",
+    email: normalizedEmail,
+    concedidoPor: grantedBy,
+    createdAt: serverTimestamp(),
+  });
+}
+
+export async function revokeMasterByEmail(email: string, revokedBy: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  if (isRootMasterEmail(normalizedEmail)) {
+    throw new Error("A conta master principal não pode ser removida.");
+  }
+
+  const usersSnapshot = await getDocs(
+    query(collection(db, "users"), where("email", "==", normalizedEmail)),
+  );
+
+  if (usersSnapshot.empty) {
+    throw new Error("Nenhum usuário encontrado com esse e-mail.");
+  }
+
+  await updateDoc(usersSnapshot.docs[0].ref, {
+    papel: "gerente",
+    updatedAt: serverTimestamp(),
+  });
+
+  await setDoc(doc(collection(db, "adminLogs")), {
+    acao: "revoke_master",
+    email: normalizedEmail,
+    removidoPor: revokedBy,
+    createdAt: serverTimestamp(),
+  });
+}
+
+export async function createDiscountCoupon(input: {
+  codigo: string;
+  percentual: number;
+  createdBy: string;
+}) {
+  const codigo = input.codigo.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+  const percentual = Math.max(1, Math.min(100, Math.floor(input.percentual)));
+
+  if (codigo.length < 3) {
+    throw new Error("Informe um cupom com pelo menos 3 caracteres.");
+  }
+
+  await setDoc(doc(db, "discountCoupons", codigo), {
+    id: codigo,
+    codigo,
+    percentual,
+    ativo: true,
+    criadoPor: input.createdBy,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  } satisfies Omit<DiscountCoupon, "createdAt" | "updatedAt"> & {
+    createdAt: ReturnType<typeof serverTimestamp>;
+    updatedAt: ReturnType<typeof serverTimestamp>;
+  });
+}
+
+export function subscribeUpgradeRequests(
+  userId: string,
+  callback: (requests: UpgradeRequest[]) => void,
+) {
+  return onSnapshot(
+    query(collection(db, "upgradeRequests"), where("userId", "==", userId)),
+    (snapshot) => {
+      const requests = snapshot.docs
+        .map((requestSnapshot) => parseDoc<UpgradeRequest>(requestSnapshot))
+        .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
+
+      callback(requests);
+    },
+  );
+}
+
+export async function archivePaymentClaim(publicId: string, claimId: string) {
+  await updateDoc(doc(db, "publicCaixas", publicId, "paymentClaims", claimId), {
+    status: "reviewed",
+    reviewedAt: serverTimestamp(),
+  });
+}
+
 export async function syncPainelIndexForUser(user: User) {
   const normalizedEmail = user.email?.trim().toLowerCase();
   const gerencia = new Set<string>();
-  const participa = new Set<string>();
 
   const managedByUid = await getDocs(query(collection(db, "caixas"), where("gerenteId", "==", user.uid)));
   managedByUid.docs.forEach((snapshot) => {
@@ -294,33 +702,10 @@ export async function syncPainelIndexForUser(user: User) {
     managedByEmail.docs.forEach((snapshot) => {
       gerencia.add(snapshot.id);
     });
-
-    const memberByEmail = await getDocs(
-      query(collectionGroup(db, "membros"), where("email", "==", normalizedEmail)),
-    );
-    memberByEmail.docs.forEach((snapshot) => {
-      const caixaId = snapshot.ref.parent.parent?.id;
-
-      if (caixaId) {
-        participa.add(caixaId);
-      }
-    });
   }
-
-  const memberByUid = await getDocs(
-    query(collectionGroup(db, "membros"), where("userId", "==", user.uid)),
-  );
-  memberByUid.docs.forEach((snapshot) => {
-    const caixaId = snapshot.ref.parent.parent?.id;
-
-    if (caixaId) {
-      participa.add(caixaId);
-    }
-  });
 
   await mergePainelIndex(user.uid, {
     gerencia: Array.from(gerencia),
-    participa: Array.from(participa),
   });
 }
 
@@ -563,7 +948,7 @@ export async function acceptInvite(token: string, user: User, profile: UserProfi
   const invite = await getInviteByToken(token);
 
   if (!invite || invite.status !== "ativo") {
-    throw new Error("Esse convite nao esta mais disponivel.");
+    throw new Error("Esse convite não está mais disponível.");
   }
   const normalizedEmail = profile.email.trim().toLowerCase();
   const totalMeses = invite.totalMeses ?? null;
@@ -576,12 +961,11 @@ export async function acceptInvite(token: string, user: User, profile: UserProfi
     throw new Error("Esse convite esta incompleto. Gere um novo link e tente novamente.");
   }
 
-  const activeMemberCaixas = await countActiveCaixasFromPainelIndex(user.uid, "participa");
-  const memberLimit = canJoinActiveCaixa(profile.plano, activeMemberCaixas);
+  const memberLimit = canJoinActiveCaixa();
 
   if (!memberLimit.allowed) {
     throw new Error(
-      "Seu plano Free permite ate 2 caixas ativos como membro. Saia de um caixa ativo ou faca upgrade para Pro.",
+      "Não foi possível entrar neste caixa pelo limite do plano.",
     );
   }
 
@@ -636,7 +1020,7 @@ export async function cancelInviteByToken(token: string) {
   const inviteSnapshot = await getDoc(inviteRef);
 
   if (!inviteSnapshot.exists()) {
-    throw new Error("Esse convite ja nao existe mais.");
+    throw new Error("Esse convite já não existe mais.");
   }
 
   await updateDoc(inviteRef, {
@@ -649,7 +1033,7 @@ export async function regeneratePublicInviteLink(caixaId: string) {
   const caixaSnapshot = await getDoc(caixaRef);
 
   if (!caixaSnapshot.exists()) {
-    throw new Error("Caixa nao encontrado.");
+    throw new Error("Caixa não encontrado.");
   }
 
   const caixa = caixaSnapshot.data() as Caixa;
@@ -679,7 +1063,7 @@ export async function removeMemberFromCaixa(caixaId: string, membro: CaixaMembro
   const memberEmail = membro.email?.trim().toLowerCase();
 
   if (!memberEmail) {
-    throw new Error("Nao foi possivel identificar o email deste membro.");
+    throw new Error("Não foi possível identificar o e-mail deste membro.");
   }
 
   await deleteDoc(doc(db, "caixas", caixaId, "membros", memberEmail));
@@ -696,6 +1080,7 @@ export async function removeMemberFromCaixa(caixaId: string, membro: CaixaMembro
   }
 
   await syncInviteSummary(caixaId);
+  await syncPublicCaixa(caixaId);
 }
 
 export async function deleteCaixaCompletely(caixaId: string) {
@@ -703,7 +1088,7 @@ export async function deleteCaixaCompletely(caixaId: string) {
   const caixaSnapshot = await getDoc(caixaRef);
 
   if (!caixaSnapshot.exists()) {
-    throw new Error("Caixa nao encontrado.");
+    throw new Error("Caixa não encontrado.");
   }
 
   const caixa = caixaSnapshot.data() as Caixa;
@@ -737,6 +1122,11 @@ export async function deleteCaixaCompletely(caixaId: string) {
     ...notesSnapshot.docs.map((noteDoc) => deleteDoc(noteDoc.ref)),
     ...invitesSnapshot.docs.map((inviteDoc) => deleteDoc(inviteDoc.ref)),
   ]);
+
+  if (caixa.publicId) {
+    await deleteDoc(doc(db, "publicCaixas", caixa.publicId));
+    await deleteDoc(doc(db, "publicCaixaOwners", caixa.publicId));
+  }
 
   await setDoc(
     doc(db, "painel_index", caixa.gerenteId),
@@ -784,7 +1174,7 @@ export async function addMemberToCaixa(caixaId: string, email: string) {
   const caixaSnapshot = await getDoc(caixaRef);
 
   if (!caixaSnapshot.exists()) {
-    throw new Error("Caixa nao encontrado.");
+    throw new Error("Caixa não encontrado.");
   }
 
   const caixa = caixaSnapshot.data() as Caixa;
@@ -852,6 +1242,7 @@ export async function addMemberToCaixa(caixaId: string, email: string) {
   });
 
   await syncInviteSummary(caixaId);
+  await syncPublicCaixa(caixaId);
 
   return {
     status: "invited" as const,
@@ -905,6 +1296,8 @@ export async function confirmPagamento(
     motivoRejeicao: null,
     pontuacaoPontualidade: paymentMedalFromDate(new Date()),
   });
+
+  await syncPublicCaixa(caixaId);
 }
 
 export async function rejectPagamento(
@@ -920,6 +1313,8 @@ export async function rejectPagamento(
     motivoRejeicao: motivo?.trim() || null,
     pontuacaoPontualidade: null,
   });
+
+  await syncPublicCaixa(caixaId);
 }
 
 export async function markPagamentoByManager(
@@ -950,13 +1345,15 @@ export async function markPagamentoByManager(
     fonte: "app",
     pontuacaoPontualidade: paymentMedalFromDate(new Date()),
   });
+
+  await syncPublicCaixa(caixaId);
 }
 
 export async function prepareCaixaSchedule(caixaId: string) {
   const caixaSnapshot = await getDoc(doc(db, "caixas", caixaId));
 
   if (!caixaSnapshot.exists()) {
-    throw new Error("Caixa nao encontrado.");
+    throw new Error("Caixa não encontrado.");
   }
 
   const caixa = caixaSnapshot.data() as Caixa;
@@ -969,7 +1366,7 @@ export async function prepareCaixaSchedule(caixaId: string) {
 
   if (activeMembers.length !== caixa.totalMeses) {
     throw new Error(
-      "O rodizio so pode ser preparado quando o numero de membros ativos for igual ao total de meses do caixa.",
+      "O rodízio só pode ser preparado quando o número de membros ativos for igual ao total de meses do caixa.",
     );
   }
 
@@ -983,6 +1380,25 @@ export async function prepareCaixaSchedule(caixaId: string) {
   );
 
   await syncInviteSummary(caixaId);
+  await syncPublicCaixa(caixaId);
+}
+
+export async function updateMemberScheduleOrder(caixaId: string, membros: CaixaMembro[]) {
+  const activeMembers = membros.filter((membro) => membro.status === "ativo");
+
+  await Promise.all(
+    activeMembers.map((membro, index) => {
+      const memberDocId = membro.email?.trim().toLowerCase() || membro.userId;
+
+      return updateDoc(doc(db, "caixas", caixaId, "membros", memberDocId), {
+        ordemSorteio: index + 1,
+        mesRecebimento: index + 1,
+      });
+    }),
+  );
+
+  await syncInviteSummary(caixaId);
+  await syncPublicCaixa(caixaId);
 }
 
 export async function advanceCaixaMonth(caixaId: string) {
@@ -990,7 +1406,7 @@ export async function advanceCaixaMonth(caixaId: string) {
   const caixaSnapshot = await getDoc(caixaRef);
 
   if (!caixaSnapshot.exists()) {
-    throw new Error("Caixa nao encontrado.");
+    throw new Error("Caixa não encontrado.");
   }
 
   const caixa = caixaSnapshot.data() as Caixa;
@@ -1004,7 +1420,7 @@ export async function advanceCaixaMonth(caixaId: string) {
     .filter((pagamento) => pagamento.mes === caixa.mesAtual);
 
   if (activeMembers.some((membro) => membro.mesRecebimento == null)) {
-    throw new Error("Prepare o rodizio do caixa antes de avancar o mes.");
+    throw new Error("Prepare o rodízio do caixa antes de avançar o mês.");
   }
 
   const confirmedCount = currentMonthPayments.filter(
@@ -1022,6 +1438,7 @@ export async function advanceCaixaMonth(caixaId: string) {
       status: "encerrado",
       updatedAt: serverTimestamp(),
     });
+    await syncPublicCaixa(caixaId);
     return {
       status: "encerrado" as const,
       mesAtual: caixa.mesAtual,
@@ -1034,6 +1451,7 @@ export async function advanceCaixaMonth(caixaId: string) {
   });
 
   await syncInviteSummary(caixaId);
+  await syncPublicCaixa(caixaId);
 
   return {
     status: "avancado" as const,
@@ -1045,7 +1463,7 @@ export async function exportCaixaBackup(caixaId: string) {
   const caixaSnapshot = await getDoc(doc(db, "caixas", caixaId));
 
   if (!caixaSnapshot.exists()) {
-    throw new Error("Caixa nao encontrado.");
+    throw new Error("Caixa não encontrado.");
   }
 
   const caixa = caixaSnapshot.data() as Caixa;
@@ -1123,24 +1541,26 @@ export async function restoreCaixaFromBackup(
   gerenteId: string,
 ) {
   const activeManagedCaixas = await countActiveCaixasFromPainelIndex(gerenteId, "gerencia");
-  const limit = canCreateActiveCaixa(profile.plano, activeManagedCaixas);
+  const limit = canCreateActiveCaixa(getEffectivePlano(profile), activeManagedCaixas);
 
   if (!limit.allowed) {
     throw new Error(
-      "Seu plano Free permite ate 2 caixas ativos como gerente. Encerre um caixa ou faca upgrade para Pro.",
+      "Seu plano Free permite 1 caixa ativo como gerente. Encerre o caixa ativo ou faca upgrade para Pro.",
     );
   }
 
   if (backup.version !== 1) {
-    throw new Error("Versao de backup nao suportada.");
+    throw new Error("Versóo de backup não suportada.");
   }
 
   const caixaRef = doc(collection(db, "caixas"));
   const linkConvite = crypto.randomUUID().replaceAll("-", "");
+  const publicId = await generateUniquePublicId();
   const caixaData = backup.caixa;
 
   await setDoc(caixaRef, {
     id: caixaRef.id,
+    publicId,
     nome: caixaData.nome,
     descricao: caixaData.descricao,
     gerenteId,
@@ -1218,6 +1638,7 @@ export async function restoreCaixaFromBackup(
   );
 
   await syncInviteSummary(caixaRef.id);
+  await syncPublicCaixa(caixaRef.id);
 
   return caixaRef.id;
 }

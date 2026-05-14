@@ -1,0 +1,21 @@
+{
+  "name": "Caixa dos Amigos",
+  "short_name": "Caixa",
+  "description": "Controle caixas, pagamentos, membros e rodizios como gerente.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FBFAF6",
+  "theme_color": "#064E2E",
+  "orientation": "portrait",
+  "categories": ["finance", "productivity"],
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon",
+      "purpose": "any"
+    }
+  ]
+}

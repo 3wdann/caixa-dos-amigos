@@ -26,7 +26,7 @@ export default function LoginPage() {
                 Entre para gerenciar seus caixas com clareza.
               </h1>
               <p className="max-w-xl text-base leading-7 text-[#657469] dark:text-slate-300">
-                Acesso do gerente para controlar membros, pagamentos, rodizios e relatorios em um
+                Acesso do gerente para controlar membros, pagamentos, rodízios e relatórios em um
                 painel mobile-first.
               </p>
             </div>

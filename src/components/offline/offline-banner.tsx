@@ -1,7 +1,7 @@
 "use client";
 
 export function OfflineBanner({
-  message = "Voce esta offline. Mostrando os ultimos dados salvos neste aparelho.",
+  message = "Você está offline. Mostrando os últimos dados salvos neste aparelho.",
 }: {
   message?: string;
 }) {

@@ -50,7 +50,7 @@ export function LoginForm() {
       window.location.assign(next);
     } catch (error) {
       toast.error(
-        getFirebaseAuthErrorMessage(error, "Nao foi possivel entrar. Tente novamente."),
+        getFirebaseAuthErrorMessage(error, "Não foi possível entrar. Tente novamente."),
       );
     }
   }
@@ -64,7 +64,9 @@ export function LoginForm() {
       toast.success(`Bem-vindo, ${result.user.displayName ?? "amigo"}!`);
       window.location.assign(next);
     } catch (error) {
-      toast.error(getFirebaseAuthErrorMessage(error, "Nao foi possivel entrar com Google."));
+      // eslint-disable-next-line no-console
+      console.error("Falha no login com Google.", error);
+      toast.error(getFirebaseAuthErrorMessage(error, "Não foi possível entrar com Google."));
     } finally {
       setPendingGoogle(false);
     }
@@ -79,7 +81,7 @@ export function LoginForm() {
       toast.success(`Bem-vindo, ${result.user.displayName ?? "amigo"}!`);
       window.location.assign(next);
     } catch (error) {
-      toast.error(getFirebaseAuthErrorMessage(error, "Nao foi possivel entrar com Apple."));
+      toast.error(getFirebaseAuthErrorMessage(error, "Não foi possível entrar com Apple."));
     } finally {
       setPendingApple(false);
     }
@@ -101,7 +103,7 @@ export function LoginForm() {
       toast.error(
         getFirebaseAuthErrorMessage(
           error,
-          "Nao foi possivel enviar o email de recuperacao. Tente novamente.",
+          "Não foi possível enviar o e-mail de recuperação. Tente novamente.",
         ),
       );
     } finally {
@@ -124,7 +126,7 @@ export function LoginForm() {
             <input
               id="email"
               type="email"
-              placeholder="voce@exemplo.com"
+              placeholder="você@exemplo.com"
               aria-describedby={errors.email ? "login-email-error" : "login-email-help"}
               aria-invalid={errors.email ? "true" : "false"}
               className="flex h-12 w-full rounded-[1.2rem] border border-[#dbe7df] bg-white px-4 py-2 text-sm text-[#13231C] shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] transition-colors placeholder:text-[#8a978f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7258]/20 dark:border-white/10 dark:bg-[rgba(15,23,42,0.82)] dark:text-slate-100 dark:placeholder:text-slate-500"
@@ -202,7 +204,7 @@ export function LoginForm() {
         ) : null}
 
         <p className="text-center text-sm text-slate-600 dark:text-slate-300" aria-live="polite">
-          Ainda nao tem conta de gerente?{" "}
+          Ainda não tem conta de gerente?{" "}
           <Link
             className="font-medium text-emerald-700 hover:text-emerald-800 dark:text-emerald-300 dark:hover:text-emerald-200"
             href={next === "/painel" ? "/cadastro" : `/cadastro?next=${encodeURIComponent(next)}`}

@@ -15,6 +15,24 @@ service cloud.firestore {
         : null;
     }
 
+    function isRootMaster() {
+      return authEmail() == 'dancos3@gmail.com';
+    }
+
+    function authUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isMaster() {
+      return isSignedIn() && (
+        isRootMaster() ||
+        (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          authUserDoc().data.papel == 'master'
+        )
+      );
+    }
+
     function isGerente(caixaId) {
       return isSignedIn() && (
         caixaDoc(caixaId).data.gerenteId == request.auth.uid ||
@@ -85,14 +103,221 @@ service cloud.firestore {
         );
     }
 
+    function isValidPublicCaixa(publicId) {
+      return request.resource.data.keys().hasOnly([
+        'publicId',
+        'nome',
+        'descricao',
+        'gerenteNome',
+        'valorMensal',
+        'totalPorMes',
+        'totalMeses',
+        'mesAtual',
+        'status',
+        'membrosAtivos',
+        'recebedorAtualNome',
+        'membros',
+        'createdAt',
+        'updatedAt'
+      ]) &&
+      request.resource.data.publicId == publicId &&
+      request.resource.data.nome is string &&
+      request.resource.data.descricao is string &&
+      request.resource.data.gerenteNome is string &&
+      request.resource.data.valorMensal is number &&
+      request.resource.data.totalPorMes is number &&
+      request.resource.data.totalMeses is number &&
+      request.resource.data.mesAtual is number &&
+      request.resource.data.status in ['ativo', 'encerrado', 'pausado'] &&
+      request.resource.data.membrosAtivos is number &&
+      request.resource.data.membros is list;
+    }
+
+    function publicCaixaOwner(publicId) {
+      return get(/databases/$(database)/documents/publicCaixaOwners/$(publicId));
+    }
+
+    function canWritePublicCaixa(publicId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/publicCaixaOwners/$(publicId)) &&
+        publicCaixaOwner(publicId).data.gerenteId == request.auth.uid &&
+        isValidPublicCaixa(publicId);
+    }
+
+    function isPublicCaixaManager(publicId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/publicCaixaOwners/$(publicId)) &&
+        publicCaixaOwner(publicId).data.gerenteId == request.auth.uid;
+    }
+
+    function isValidPaymentClaim(publicId) {
+      return request.resource.data.keys().hasOnly([
+        'id',
+        'publicId',
+        'nome',
+        'telefone',
+        'mensagem',
+        'mes',
+        'status',
+        'createdAt'
+      ]) &&
+      request.resource.data.id is string &&
+      request.resource.data.publicId == publicId &&
+      request.resource.data.nome is string &&
+      request.resource.data.nome.size() >= 2 &&
+      request.resource.data.nome.size() <= 80 &&
+      (request.resource.data.telefone == null || (
+        request.resource.data.telefone is string &&
+        request.resource.data.telefone.size() <= 40
+      )) &&
+      (request.resource.data.mensagem == null || (
+        request.resource.data.mensagem is string &&
+        request.resource.data.mensagem.size() <= 240
+      )) &&
+      request.resource.data.mes is number &&
+      request.resource.data.status == 'pending' &&
+      request.resource.data.createdAt == request.time;
+    }
+
+    function isReviewedPaymentClaim() {
+      return resource.data.status == 'pending' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'reviewedAt']) &&
+        request.resource.data.status == 'reviewed' &&
+        request.resource.data.reviewedAt == request.time;
+    }
+
+    function isValidOwnUserCreate(userId) {
+      return isSignedIn() &&
+        request.auth.uid == userId &&
+        request.resource.data.uid == userId &&
+        request.resource.data.plano == 'free';
+    }
+
+    function isValidOwnUserUpdate(userId) {
+      return isSignedIn() &&
+        request.auth.uid == userId &&
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.plano == resource.data.plano;
+    }
+
+    function isValidMasterUserUpdate() {
+      return isMaster() &&
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'plano',
+          'planoExpiraEm',
+          'papel',
+          'updatedAt'
+        ]) &&
+        request.resource.data.plano in ['free', 'pro'] &&
+        (
+          !('papel' in request.resource.data) ||
+          request.resource.data.papel in ['membro', 'gerente', 'master']
+        ) &&
+        (
+          !('papel' in request.resource.data) ||
+          !('papel' in resource.data) ||
+          request.resource.data.papel == resource.data.papel ||
+          isRootMaster()
+        );
+    }
+
+    function isValidUpgradeRequest() {
+      return isSignedIn() &&
+        request.resource.data.keys().hasOnly([
+          'id',
+          'userId',
+          'nome',
+          'email',
+          'planoAtual',
+          'planoSolicitado',
+          'status',
+          'origem',
+          'adminEmail',
+          'aprovadoPor',
+          'aprovadoAte',
+          'rejeitadoPor',
+          'motivoRejeicao',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        request.resource.data.id is string &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.nome is string &&
+        request.resource.data.email == authEmail() &&
+        request.resource.data.planoAtual == 'free' &&
+        request.resource.data.planoSolicitado == 'pro' &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.origem == 'planos' &&
+        request.resource.data.adminEmail == 'dancos3@gmail.com' &&
+        request.resource.data.aprovadoPor == null &&
+        request.resource.data.aprovadoAte == null &&
+        request.resource.data.rejeitadoPor == null &&
+        request.resource.data.motivoRejeicao == null &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.updatedAt == request.time;
+    }
+
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isValidOwnUserCreate(userId);
+      allow update: if isValidOwnUserUpdate(userId) || isValidMasterUserUpdate();
+      allow delete: if false;
+    }
+
+    match /upgradeRequests/{requestId} {
+      allow create: if isValidUpgradeRequest() &&
+        request.resource.data.id == requestId;
+      allow read: if isMaster() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow update: if isMaster();
+      allow delete: if false;
+    }
+
+    match /discountCoupons/{couponId} {
+      allow read, create, update, delete: if isMaster();
+    }
+
+    match /adminLogs/{logId} {
+      allow read, create: if isMaster();
+      allow update, delete: if false;
     }
 
     match /painel_index/{userId} {
       allow read: if isSignedIn() && request.auth.uid == userId;
       allow create, update: if isSignedIn();
+    }
+
+    match /publicCaixaOwners/{publicId} {
+      allow read: if isSignedIn() && resource.data.gerenteId == request.auth.uid;
+      allow create: if isSignedIn() &&
+        request.resource.data.keys().hasOnly(['publicId', 'caixaId', 'gerenteId', 'updatedAt']) &&
+        request.resource.data.publicId == publicId &&
+        request.resource.data.gerenteId == request.auth.uid &&
+        isGerente(request.resource.data.caixaId);
+      allow update: if isSignedIn() &&
+        resource.data.gerenteId == request.auth.uid &&
+        request.resource.data.keys().hasOnly(['publicId', 'caixaId', 'gerenteId', 'updatedAt']) &&
+        request.resource.data.publicId == publicId &&
+        request.resource.data.caixaId == resource.data.caixaId &&
+        request.resource.data.gerenteId == resource.data.gerenteId &&
+        isGerente(resource.data.caixaId);
+      allow delete: if isSignedIn() && resource.data.gerenteId == request.auth.uid;
+    }
+
+    match /publicCaixas/{publicId} {
+      allow read: if true;
+      allow create, update: if canWritePublicCaixa(publicId);
+      allow delete: if isSignedIn() &&
+        exists(/databases/$(database)/documents/publicCaixaOwners/$(publicId)) &&
+        publicCaixaOwner(publicId).data.gerenteId == request.auth.uid;
+
+      match /paymentClaims/{claimId} {
+        allow create: if isValidPaymentClaim(publicId) &&
+          request.resource.data.id == claimId;
+        allow read: if isPublicCaixaManager(publicId);
+        allow update: if isPublicCaixaManager(publicId) && isReviewedPaymentClaim();
+        allow delete: if isPublicCaixaManager(publicId);
+      }
     }
 
     match /caixas/{caixaId} {

@@ -9,7 +9,6 @@ import { auth } from "@/lib/firebase";
 import {
   ensureUserProfile,
   subscribeUserProfile,
-  syncPainelIndexForUser,
 } from "@/lib/firestore";
 import type { UserProfile } from "@/lib/types";
 
@@ -53,11 +52,6 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         console.error("Falha ao garantir perfil do usuario no Firestore.", error);
       });
 
-      void syncPainelIndexForUser(nextUser).catch((error) => {
-        // eslint-disable-next-line no-console
-        console.error("Falha ao sincronizar painel do usuario.", error);
-      });
-
       setLoading(false);
     });
 
@@ -72,7 +66,10 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       user,
       profile,
       loading,
-      logout: async () => signOut(auth),
+      logout: async () => {
+        await signOut(auth);
+        window.location.assign("/");
+      },
     }),
     [loading, profile, user],
   );

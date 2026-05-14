@@ -4,16 +4,16 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import type { CaixaResumo } from "@/lib/types";
 
-function paymentLabel(status?: CaixaResumo["meuStatusNoMes"]) {
+function paymentLabel(status: CaixaResumo["meuStatusNoMes"]) {
   switch (status) {
     case "confirmado":
       return "Pagamento confirmado";
     case "pendente":
-      return "Pagamento aguardando confirmacao";
+      return "Pagamento aguardando confirma??o";
     case "rejeitado":
       return "Pagamento rejeitado";
     case "nao_iniciado":
-      return "Pagamento ainda nao marcado";
+      return "Pagamento ainda não marcado";
     default:
       return "Sem status neste mes";
   }
@@ -53,10 +53,10 @@ export function CaixaCard({
       <CardContent className="space-y-3 text-sm text-[#657469] dark:text-slate-300">
         <div className="rounded-[1.4rem] border border-[#dbe7df] bg-[#f9fbf9] px-4 py-3 dark:border-white/10 dark:bg-white/5">
           <p className="text-[11px] uppercase tracking-[0.18em] text-[#657469] dark:text-slate-400">
-            ID do caixa
+            ID público do caixa
           </p>
           <p className="mt-1 break-all font-mono text-xs font-semibold text-[#13231C] dark:text-slate-100">
-            {caixa.id}
+            {caixa.publicId ?? "Gerar no detalhe"}
           </p>
         </div>
         <div className="flex items-center justify-between">

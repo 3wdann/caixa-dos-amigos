@@ -20,7 +20,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { initialsFromName } from "@/lib/avatar";
-import { getPlanoLabel } from "@/lib/plano";
+import { getEffectivePlano, getPlanoLabel } from "@/lib/plano";
 
 const members = [
   { name: "Ana", status: "Pago", face: "A" },
@@ -31,7 +31,7 @@ const members = [
 const steps = [
   ["wallet", "Crie o caixa", "Defina valor, membros, meses e objetivo do grupo.", "01"],
   ["users", "Cadastre membros", "O gerente adiciona participantes sem exigir conta de todos.", "02"],
-  ["chart", "Acompanhe tudo", "Controle pagamentos, rodizio, relatorios e compartilhamentos.", "03"],
+  ["chart", "Acompanhe tudo", "Controle pagamentos, rodízio, relatórios e compartilhamentos.", "03"],
 ] as const;
 
 function Logo() {
@@ -112,7 +112,7 @@ function DashboardCard({ compact = false }: { compact?: boolean }) {
       <div className="mt-4 rounded-3xl bg-[#EAF6EC]/80 p-5 dark:bg-white/5">
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-black text-[#052E1B] dark:text-slate-50">Pagamentos do mes</p>
+            <p className="font-black text-[#052E1B] dark:text-slate-50">Pagamentos do mês</p>
             <p className="mt-1 text-sm text-[#475569] dark:text-slate-300">6 de 8 confirmados</p>
           </div>
           <Clock3 className="h-5 w-5 text-[#0B6B3A]" />
@@ -232,6 +232,11 @@ export default function Home() {
                     Acessar painel
                   </Button>
                 </Link>
+                <Link href="/planos">
+                  <Button variant="outline" className="rounded-2xl">
+                    Planos
+                  </Button>
+                </Link>
                 <Button variant="outline" className="rounded-2xl" onClick={() => logout()}>
                   Sair
                 </Button>
@@ -243,7 +248,7 @@ export default function Home() {
                     variant="outline"
                     className="rounded-2xl border-[#052E1B] px-7 py-3 font-black text-[#052E1B] transition hover:-translate-y-0.5 hover:bg-emerald-50"
                   >
-                    Entrar como gerente
+                    Entrar
                   </Button>
                 </Link>
                 <Link href="/cadastro">
@@ -271,11 +276,11 @@ export default function Home() {
                   </div>
 
                   <h1 className="mt-5 max-w-[8.5ch] text-5xl font-black leading-[.92] tracking-tight text-[#052E1B] dark:text-slate-50 md:text-7xl">
-                    Controle seu caixa em um so lugar
+                    Controle seu caixa em um só lugar
                   </h1>
                   <p className="mt-6 max-w-xl text-xl leading-8 text-[#475569] dark:text-slate-300">
-                    Controle seu caixa, pagamentos, membros e rodizios em um so lugar. O gerente
-                    organiza tudo e compartilha as informacoes com o grupo.
+                    Controle seu caixa, pagamentos, membros e rodízios em um só lugar. O gerente
+                    organiza tudo e compartilha as informações com o grupo.
                   </p>
 
                   <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -288,9 +293,9 @@ export default function Home() {
                         </Link>
                         <div className="rounded-2xl border border-[#D7E7DA] bg-white/80 px-5 py-4">
                           <p className="text-sm font-semibold text-[#052E1B]">
-                            Plano {getPlanoLabel(profile.plano)}
+                            Plano {getPlanoLabel(getEffectivePlano(profile))}
                           </p>
-                          <p className="mt-1 text-sm text-[#475569]">Versao beta ativa</p>
+                          <p className="mt-1 text-sm text-[#475569]">Versão beta ativa</p>
                         </div>
                       </>
                     ) : (
@@ -305,7 +310,7 @@ export default function Home() {
                             variant="outline"
                             className="rounded-2xl border border-[#052E1B] bg-white/70 px-8 py-4 font-black text-[#052E1B] transition hover:-translate-y-0.5 hover:bg-emerald-50 dark:border-white/10 dark:bg-[rgba(15,23,42,0.72)] dark:text-slate-100 dark:hover:bg-white/8"
                           >
-                            Entrar como gerente
+                            Entrar
                           </Button>
                         </Link>
                       </>
@@ -317,7 +322,7 @@ export default function Home() {
                       Gerente cadastra membros e controla pagamentos.
                     </span>
                     <span className="rounded-2xl border border-[#D7E7DA] bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-                      Em breve, consulta publica pelo ID do caixa.
+                      Consulta pública pelo ID do caixa para participantes.
                     </span>
                   </div>
 

@@ -1,6 +1,8 @@
 import type { Timestamp } from "firebase/firestore";
 
 export type Plano = "free" | "pro";
+export type UserRole = "membro" | "gerente" | "master";
+export type UpgradeRequestStatus = "pending" | "approved" | "rejected" | "cancelled";
 export type CaixaStatus = "ativo" | "encerrado" | "pausado";
 export type CaixaOrigem = "novo" | "importado";
 export type MembroStatus = "ativo" | "removido";
@@ -15,6 +17,8 @@ export interface UserProfile {
   fotoUrl: string | null;
   cor: string;
   plano: Plano;
+  planoExpiraEm?: Timestamp | null;
+  papel?: UserRole;
   chavePix: string | null;
   tipoChavePix: TipoChavePix;
   createdAt: Timestamp | null;
@@ -32,6 +36,7 @@ export interface UserLookup {
 
 export interface Caixa {
   id: string;
+  publicId?: string;
   nome: string;
   descricao: string;
   gerenteId: string;
@@ -113,6 +118,73 @@ export interface Convite {
 export interface CaixaResumo extends Caixa {
   membrosAtivos: number;
   meuStatusNoMes?: PagamentoStatus | "nao_iniciado";
+}
+
+export interface UpgradeRequest {
+  id: string;
+  userId: string;
+  nome: string;
+  email: string;
+  planoAtual: Plano;
+  planoSolicitado: "pro";
+  status: UpgradeRequestStatus;
+  origem: "planos";
+  adminEmail?: string;
+  aprovadoPor?: string | null;
+  aprovadoAte?: Timestamp | null;
+  rejeitadoPor?: string | null;
+  motivoRejeicao?: string | null;
+  createdAt: Timestamp | null;
+  updatedAt: Timestamp | null;
+}
+
+export interface DiscountCoupon {
+  id: string;
+  codigo: string;
+  percentual: number;
+  ativo: boolean;
+  criadoPor: string;
+  createdAt: Timestamp | null;
+  updatedAt: Timestamp | null;
+}
+
+export interface PublicCaixaMembro {
+  nome: string;
+  status: MembroStatus;
+  mesRecebimento: number | null;
+  ordemSorteio: number | null;
+  pagamentoStatus: PagamentoStatus | "sem_pagamento";
+}
+
+export interface PublicCaixa {
+  publicId: string;
+  nome: string;
+  descricao: string;
+  gerenteNome: string;
+  valorMensal: number;
+  totalPorMes: number;
+  totalMeses: number;
+  mesAtual: number;
+  status: CaixaStatus;
+  membrosAtivos: number;
+  recebedorAtualNome: string | null;
+  membros: PublicCaixaMembro[];
+  createdAt: Timestamp | null;
+  updatedAt: Timestamp | null;
+}
+
+export type PaymentClaimStatus = "pending" | "reviewed";
+
+export interface PaymentClaim {
+  id: string;
+  publicId: string;
+  nome: string;
+  telefone: string | null;
+  mensagem: string | null;
+  mes: number;
+  status: PaymentClaimStatus;
+  createdAt: Timestamp | null;
+  reviewedAt?: Timestamp | null;
 }
 
 export interface CreateCaixaInput {

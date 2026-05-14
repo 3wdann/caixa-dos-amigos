@@ -14,9 +14,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { initialsFromName } from "@/lib/avatar";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { subscribeManagedCaixas } from "@/lib/firestore";
+import { isMasterProfile } from "@/lib/master";
 import { readOfflineCache, writeOfflineCache } from "@/lib/offline-cache";
-import { getPlanoLabel } from "@/lib/plano";
+import {
+  canCreateActiveCaixa,
+  getEffectivePlano,
+  getManagedCaixaUsageLabel,
+  getPlanoFeatures,
+  getPlanoLabel,
+} from "@/lib/plano";
 import type { CaixaResumo } from "@/lib/types";
+import Link from "next/link";
 
 export function DashboardPageClient() {
   const { user, profile, logout } = useAuth();
@@ -26,7 +34,10 @@ export function DashboardPageClient() {
   const [managedCaixas, setManagedCaixas] = useState<CaixaResumo[]>([]);
   const [cacheReady, setCacheReady] = useState(false);
   const activeManagedCaixas = managedCaixas.filter((caixa) => caixa.status === "ativo").length;
-  const freeManagedLimitReached = profile?.plano === "free" && activeManagedCaixas >= 2;
+  const effectivePlano = getEffectivePlano(profile);
+  const createLimit = profile ? canCreateActiveCaixa(effectivePlano, activeManagedCaixas) : null;
+  const freeManagedLimitReached = Boolean(profile && !createLimit?.allowed);
+  const planFeatures = profile ? getPlanoFeatures(effectivePlano) : null;
   const hasManagedCaixas = managedCaixas.length > 0;
   const hasDashboardSections = hasManagedCaixas;
 
@@ -124,22 +135,30 @@ export function DashboardPageClient() {
               </Avatar>
               <div>
                 <p className="text-sm text-[#657469] dark:text-slate-400">Seu painel</p>
-                <h1 className="text-2xl font-semibold text-[#13231C] dark:text-white">Ola, {profile.nome}</h1>
+                <h1 className="text-2xl font-semibold text-[#13231C] dark:text-white">Olá, {profile.nome}</h1>
                 <p className="text-sm text-[#657469] dark:text-slate-300">
-                  Controle caixas, pagamentos, membros e rodizios em um so lugar.
+                  Consulte caixas pelo ID público ou assuma a gestão de um grupo.
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <Badge className="bg-[#fff4d8] text-[#8B6A11] hover:bg-[#fff4d8]">
-                    Versao beta
+                    Versão beta
                   </Badge>
                   <Badge className="bg-[#E2F3E7] text-[#214F3F] hover:bg-[#E2F3E7]">
-                    Plano {getPlanoLabel(profile.plano)}
+                    Plano {getPlanoLabel(effectivePlano)}
                   </Badge>
                 </div>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-3">
+              <Link href="/">
+                <Button variant="outline">Home</Button>
+              </Link>
+              {isMasterProfile(profile) ? (
+                <Link href="/painel/master">
+                  <Button variant="outline">Painel master</Button>
+                </Link>
+              ) : null}
               <ThemeToggle />
               <Button
                 className="bg-primary text-primary-foreground"
@@ -153,7 +172,7 @@ export function DashboardPageClient() {
                 disabled={freeManagedLimitReached}
                 onClick={() => setContinueModalOpen(true)}
               >
-                Continuar com caixa ja existente
+                Continuar com caixa já existente
               </Button>
               <Button variant="outline" onClick={() => logout()}>
                 Sair
@@ -167,31 +186,59 @@ export function DashboardPageClient() {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm uppercase tracking-[0.2em] text-[#2F7258] dark:text-[#E2F3E7]">Resumo rapido</p>
               <p className="text-sm text-[#657469] dark:text-slate-300">
-                Visao focada no gerente do caixa.
+                Escolha como quer usar o Caixa dos Amigos.
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-[1.6rem] border border-[#dbe7df] bg-[#F6FBF7] p-5 dark:border-white/10 dark:bg-[rgba(15,23,42,0.72)]">
+                <p className="text-sm text-[#657469] dark:text-slate-300">Entrar como membro</p>
+                <p className="mt-3 text-lg font-semibold text-[#13231C] dark:text-white">
+                  Consultar por ID
+                </p>
+                <p className="mt-2 text-sm text-[#657469] dark:text-slate-400">
+                  Use o ID público recebido para acompanhar informações básicas sem criar outro caixa.
+                </p>
+                <Link href="/consultar" className="mt-3 inline-flex text-sm font-semibold text-[#214F3F] underline-offset-4 hover:underline dark:text-emerald-200">
+                  Consultar caixa
+                </Link>
+              </div>
               <div className="rounded-[1.6rem] bg-[#214F3F] p-5 text-white shadow-[0_18px_36px_rgba(33,79,63,0.2)]">
                 <p className="text-sm text-white/75">Caixas que gerencio</p>
                 <p className="mt-3 text-3xl font-semibold">{managedCaixas.length}</p>
-                <p className="mt-2 text-sm text-white/75">Ativos: {activeManagedCaixas} de 2 no Free</p>
-              </div>
-              <div className="rounded-[1.6rem] border border-[#dbe7df] bg-[#F6FBF7] p-5 dark:border-white/10 dark:bg-[rgba(15,23,42,0.72)]">
-                <p className="text-sm text-[#657469] dark:text-slate-300">Plano atual</p>
-                <p className="mt-3 text-3xl font-semibold text-[#13231C] dark:text-white">{getPlanoLabel(profile.plano)}</p>
-                <p className="mt-2 text-sm text-[#657469] dark:text-slate-400">Versao beta em validacao</p>
+                <p className="mt-2 text-sm text-white/75">
+                  {getManagedCaixaUsageLabel(effectivePlano, activeManagedCaixas)}
+                </p>
               </div>
               <div className="rounded-[1.6rem] border border-[#ecd69f] bg-[#fff9ec] p-5 dark:border-amber-300/15 dark:bg-[rgba(15,23,42,0.72)]">
-                <p className="text-sm text-[#8B6A11] dark:text-slate-300">Modo gerente</p>
-                <p className="mt-3 text-lg font-semibold text-[#13231C] dark:text-white">Controle centralizado</p>
-                <p className="mt-2 text-sm text-[#8B6A11] dark:text-slate-400">Consulta publica por ID entra na proxima etapa.</p>
+                <p className="text-sm text-[#8B6A11] dark:text-slate-300">Virar Pro gerente/membro</p>
+                <p className="mt-3 text-lg font-semibold text-[#13231C] dark:text-white">
+                  {getPlanoLabel(effectivePlano)}
+                </p>
+                <p className="mt-2 text-sm text-[#657469] dark:text-slate-400">
+                  {planFeatures?.managedCaixasLabel}
+                </p>
+                <Link
+                  href="/planos"
+                  className="mt-2 inline-flex text-sm font-semibold text-[#8B6A11] underline-offset-4 hover:underline dark:text-amber-200"
+                >
+                  Ver modelo de planos
+                </Link>
               </div>
             </div>
             <div className="rounded-[1.6rem] border border-[#dbe7df] bg-[#f9fbf9] p-4 text-sm text-[#657469] dark:border-white/10 dark:bg-[rgba(15,23,42,0.72)] dark:text-slate-200">
-              Voce e o gerente. Cadastre os membros, acompanhe pagamentos e compartilhe o ID do
-              caixa com quem precisa consultar. No plano Free, voce pode ter ate 2 caixas ativos
-              como gerente. Em breve, cada caixa tera um ID publico para consulta dos participantes.
+              Se você recebeu um ID, comece como membro consultando o caixa. Se você administra um
+              grupo, crie ou continue um caixa como gerente. O plano Pro libera gestão avançada e
+              caixas ativos ilimitados.
             </div>
+            {freeManagedLimitReached ? (
+              <div className="rounded-[1.6rem] border border-[#ecd69f] bg-[#fff9ec] p-4 text-sm text-[#8B6A11] dark:border-amber-300/15 dark:bg-amber-300/10 dark:text-amber-100">
+                Você atingiu o limite do plano Free. Para criar outro caixa ativo, encerre o caixa
+                atual ou veja o plano Pro.
+                <Link href="/planos" className="ml-1 font-semibold underline underline-offset-4">
+                  Ver planos
+                </Link>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 
@@ -222,13 +269,13 @@ export function DashboardPageClient() {
           <Card className="border-dashed border-[#dbe7df] bg-white dark:border-white/10 dark:bg-[rgba(15,23,42,0.86)]">
             <CardContent className="space-y-3 p-6 text-sm text-slate-600 dark:text-slate-300">
               <p className="font-medium text-slate-900 dark:text-white">
-                Seu painel esta pronto para comecar.
+                Seu painel está pronto para começar.
               </p>
               <p>
-                Use o botao <span className="font-medium">Novo caixa</span> para abrir seu primeiro
-                grupo ou <span className="font-medium">Continuar com caixa ja existente</span> para
-                trazer um grupo que ja esta rodando fora do app. Depois, cadastre os membros,
-                acompanhe pagamentos e organize o rodizio em um painel de gerente.
+                Se você recebeu um ID, use a consulta pública. Se você é responsável por um grupo,
+                use <span className="font-medium">Novo caixa</span> ou{" "}
+                <span className="font-medium">Continuar com caixa já existente</span> para assumir a
+                gestão.
               </p>
             </CardContent>
           </Card>
@@ -272,8 +319,8 @@ export function DashboardPageClient() {
                       Continuar caixa
                     </p>
                     <p className="text-sm text-slate-600 dark:text-slate-300">
-                      Use este fluxo quando o grupo ja existe fora do app e voce quer cadastrar o
-                      estagio atual dele por aqui.
+                      Use este fluxo quando o grupo já existe fora do app e você quer cadastrar o
+                      estágio atual dele por aqui.
                     </p>
                   </div>
                   <Button variant="outline" onClick={() => setContinueModalOpen(false)}>
@@ -284,8 +331,8 @@ export function DashboardPageClient() {
                   profile={profile}
                   userId={user.uid}
                   mode="andamento"
-                  title="Continuar com caixa ja existente"
-                  description="Informe os dados do grupo, em qual mes ele esta hoje e siga com membros e pagamentos sem recomecar o ciclo."
+                  title="Continuar com caixa já existente"
+                  description="Informe os dados do grupo, em qual mês ele está hoje e siga com membros e pagamentos sem recomeçar o ciclo."
                   showBackupRestore={false}
                   onSuccess={() => setContinueModalOpen(false)}
                 />

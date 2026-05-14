@@ -29,7 +29,7 @@ export function AddMemberForm({ caixaId }: { caixaId: string }) {
       reset();
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel adicionar o membro.";
+        error instanceof Error ? error.message : "Não foi possível adicionar o membro.";
       toast.error(message);
     }
   }

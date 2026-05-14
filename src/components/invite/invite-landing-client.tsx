@@ -50,11 +50,11 @@ export function InviteLandingClient({ token }: { token: string | null }) {
     try {
       setJoining(true);
       const result = await acceptInvite(token, user, profile);
-      toast.success(`Voce entrou no caixa ${result.caixaNome}.`);
+      toast.success(`Você entrou no caixa ${result.caixaNome}.`);
       window.location.assign(`/painel/caixas/${result.caixaId}`);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel entrar no caixa.";
+        error instanceof Error ? error.message : "Não foi possível entrar no caixa.";
       toast.error(message);
     } finally {
       setJoining(false);
@@ -87,7 +87,7 @@ export function InviteLandingClient({ token }: { token: string | null }) {
             Convite indisponivel
           </p>
           <h1 className="mt-4 text-3xl font-semibold text-slate-900 dark:text-white">
-            Esse convite nao esta mais ativo.
+            Esse convite não está mais ativo.
           </h1>
           <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
             Peca um novo link ao gerente do caixa para continuar.
@@ -103,7 +103,7 @@ export function InviteLandingClient({ token }: { token: string | null }) {
     );
   }
 
-  const nextPath = `/entrar?convite=${token}`;
+  const nextPath = `/entraráconvite=${token}`;
   const inviteEmailMismatch =
     Boolean(user && profile && invite.emailDestino) &&
     invite.emailDestino !== profile?.email.trim().toLowerCase();
@@ -211,7 +211,7 @@ export function InviteLandingClient({ token }: { token: string | null }) {
             ) : (
               <div className="space-y-3">
                 <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-200">
-                  Voce esta autenticado como {profile.email}. Ao confirmar, entrara no caixa
+                  Você está autenticado como {profile.email}. Ao confirmar, entrará no caixa
                   imediatamente como membro ativo.
                 </div>
                 <Button

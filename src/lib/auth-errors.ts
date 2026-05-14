@@ -6,23 +6,23 @@ export function getFirebaseAuthErrorMessage(error: unknown, fallback: string) {
   const message = error.message;
 
   if (message.includes("auth/invalid-credential")) {
-    return "Email ou senha invalidos. Digite a senha correta e tente novamente.";
+    return "E-mail ou senha inválidos. Digite a senha correta e tente novamente.";
   }
 
   if (message.includes("auth/user-not-found")) {
-    return "Nao encontramos uma conta com esse email.";
+    return "Não encontramos uma conta com esse e-mail.";
   }
 
   if (message.includes("auth/wrong-password")) {
-    return "Senha invalida. Digite a senha correta e tente novamente.";
+    return "Senha inválida. Digite a senha correta e tente novamente.";
   }
 
   if (message.includes("auth/email-already-in-use")) {
-    return "Esse email ja esta em uso. Tente entrar ou recuperar sua senha.";
+    return "Esse e-mail já está em uso. Tente entrar ou recuperar sua senha.";
   }
 
   if (message.includes("auth/weak-password")) {
-    return "A senha esta muito fraca. Use pelo menos 6 caracteres.";
+    return "A senha está muito fraca. Use pelo menos 6 caracteres.";
   }
 
   if (message.includes("auth/popup-closed-by-user")) {
@@ -30,15 +30,23 @@ export function getFirebaseAuthErrorMessage(error: unknown, fallback: string) {
   }
 
   if (message.includes("auth/popup-blocked")) {
-    return "Seu navegador bloqueou o popup de autenticacao. Libere popups e tente novamente.";
+    return "Seu navegador bloqueou o pop-up de autenticação. Libere pop-ups e tente novamente.";
   }
 
   if (message.includes("auth/operation-not-allowed")) {
-    return "Esse provedor ainda nao foi ativado no Firebase. Verifique a configuracao do login.";
+    return "Esse provedor ainda não foi ativado no Firebase. Verifique a configuração do login.";
+  }
+
+  if (message.includes("auth/unauthorized-domain")) {
+    return "Este domínio não está autorizado no Firebase para login com Google. Use localhost ou adicione este domínio nas configurações do Firebase Auth.";
+  }
+
+  if (message.includes("auth/cancelled-popup-request")) {
+    return "Outra janela de login já estava aberta. Feche o pop-up anterior e tente novamente.";
   }
 
   if (message.includes("auth/account-exists-with-different-credential")) {
-    return "Ja existe uma conta com este email usando outro metodo de acesso.";
+    return "Já existe uma conta com este e-mail usando outro método de acesso.";
   }
 
   if (message.includes("auth/too-many-requests")) {
@@ -46,7 +54,7 @@ export function getFirebaseAuthErrorMessage(error: unknown, fallback: string) {
   }
 
   if (message.includes("auth/invalid-email")) {
-    return "Digite um email valido.";
+    return "Digite um e-mail válido.";
   }
 
   return fallback;

@@ -16,22 +16,22 @@ export const createCaixaSchema = z
     valorMensal: z.coerce.number().positive("Informe um valor mensal maior que zero."),
     totalMeses: z.coerce
       .number()
-      .int("Informe um numero inteiro de meses.")
+      .int("Informe um número inteiro de meses.")
       .min(2, "O caixa precisa ter ao menos 2 membros.")
       .max(50, "Use ate 50 membros nesta fase inicial."),
     dataInicio: z.string().min(1, "Escolha a data de inicio."),
     modoCriacao: z.enum(["novo", "andamento"]),
     mesAtual: z.coerce
       .number()
-      .int("Informe um mes inteiro.")
-      .min(1, "O mes atual deve ser pelo menos 1."),
+      .int("Informe um mês inteiro.")
+      .min(1, "O mês atual deve ser pelo menos 1."),
   })
   .superRefine((values, ctx) => {
     if (values.mesAtual > values.totalMeses) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["mesAtual"],
-        message: "O mes atual nao pode ser maior que o total de membros / meses.",
+        message: "O mês atual não pode ser maior que o total de membros / meses.",
       });
     }
 
@@ -39,7 +39,7 @@ export const createCaixaSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["mesAtual"],
-        message: "Para um caixa novo, o mes atual precisa comecar em 1.",
+        message: "Para um caixa novo, o mês atual precisa começar em 1.",
       });
     }
   });

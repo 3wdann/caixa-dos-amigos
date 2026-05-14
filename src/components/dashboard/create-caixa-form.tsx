@@ -48,7 +48,7 @@ export function CreateCaixaForm({
 }: {
   profile: UserProfile;
   userId: string;
-  onSuccess?: () => void;
+  onSuccess: () => void;
   mode?: "novo" | "andamento";
   title?: string;
   description?: string;
@@ -113,7 +113,7 @@ export function CreateCaixaForm({
           detail: createdCaixa,
         }),
       );
-      onSuccess?.();
+      onSuccess();
       reset({
         nome: "",
         descricao: "",
@@ -125,7 +125,7 @@ export function CreateCaixaForm({
       });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel criar o caixa.";
+        error instanceof Error ? error.message : "Não foi possível criar o caixa.";
       toast.error(message);
     }
   }
@@ -145,7 +145,7 @@ export function CreateCaixaForm({
       window.location.assign(`/painel/caixas/${restoredCaixaId}`);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel restaurar o backup.";
+        error instanceof Error ? error.message : "Não foi possível restaurar o backup.";
       toast.error(message);
     } finally {
       setRestoringBackup(false);
@@ -317,8 +317,8 @@ export function CreateCaixaForm({
 
         {modoCriacao === "andamento" ? (
           <div className="rounded-[1.5rem] border border-[#ecd69f] bg-[#fff8e7] px-4 py-3 text-sm text-[#8B6A11] dark:border-sky-400/20 dark:bg-sky-500/10 dark:text-sky-100">
-            Depois de cadastrar, voce pode registrar os membros que faltam, ajustar pagamentos deste mes
-            e continuar o caixa sem recomecar o historico manualmente.
+            Depois de cadastrar, você pode registrar os membros que faltam, ajustar pagamentos deste mês
+            e continuar o caixa sem recomeçar o hist?rico manualmente.
           </div>
         ) : null}
 
@@ -343,7 +343,7 @@ export function CreateCaixaForm({
             Restaurar caixa por JSON
           </summary>
           <p className="mt-2 text-sm text-[#657469] dark:text-slate-300">
-            Use um backup exportado de outro caixa para recriar tudo com historico, membros, pagamentos e notas.
+            Use um backup exportado de outro caixa para recriar tudo com hist?rico, membros, pagamentos e notas.
           </p>
           <div className="mt-3 space-y-3">
             <input
@@ -361,7 +361,7 @@ export function CreateCaixaForm({
               onChange={(event) => setBackupJson(event.target.value)}
             />
             <p id="backup-json-help" className="text-xs text-[#657469] dark:text-slate-400">
-              Voce pode colar o conteudo do arquivo ou selecionar um JSON exportado.
+              Você pode colar o conteúdo do arquivo ou selecionar um JSON exportado.
             </p>
             <button
               type="button"

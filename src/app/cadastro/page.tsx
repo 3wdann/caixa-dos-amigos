@@ -27,7 +27,7 @@ export default function CadastroPage() {
               </h1>
               <p className="max-w-xl text-base leading-7 text-[#657469] dark:text-slate-300">
                 O app continua em beta e ja cobre criacao de caixas, membros, pagamentos,
-                rodizios, relatorios e compartilhamento pelo gerente.
+                rodízios, relatórios e compartilhamento pelo gerente.
               </p>
             </div>
           </section>

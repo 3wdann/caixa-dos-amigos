@@ -33,12 +33,14 @@ import { initialsFromName } from "@/lib/avatar";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import {
   advanceCaixaMonth,
+  archivePaymentClaim,
   cancelInviteByToken,
   confirmPagamento,
   declarePagamento,
   deleteCaixaNota,
   deleteCaixaCompletely,
   exportCaixaBackup,
+  generatePublicIdForCaixa,
   markPagamentoByManager,
   prepareCaixaSchedule,
   regeneratePublicInviteLink,
@@ -51,7 +53,10 @@ import {
   subscribeCaixaPagamentos,
   subscribeUserProfile,
   saveCaixaNota,
+  subscribePaymentClaims,
+  updateMemberScheduleOrder,
 } from "@/lib/firestore";
+import { getEffectivePlano } from "@/lib/plano";
 import { readOfflineCache, writeOfflineCache } from "@/lib/offline-cache";
 import type {
   Caixa,
@@ -59,6 +64,7 @@ import type {
   CaixaNota,
   CaixaPagamento,
   Convite,
+  PaymentClaim,
   UserProfile,
 } from "@/lib/types";
 
@@ -80,11 +86,6 @@ function escapeCsvValue(value: string | number | null | undefined) {
   return `"${normalized.replaceAll('"', '""')}"`;
 }
 
-function getCaixaPublicId(caixaId: string) {
-  const normalized = caixaId.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-  return `CXA-${normalized.slice(0, 4)}-${normalized.slice(-4)}`;
-}
-
 function slugifyCaixaNome(value: string) {
   return value
     .normalize("NFD")
@@ -103,13 +104,16 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
   const [pagamentos, setPagamentos] = useState<CaixaPagamento[]>([]);
   const [notas, setNotas] = useState<CaixaNota[]>([]);
   const [convites, setConvites] = useState<Convite[]>([]);
+  const [paymentClaims, setPaymentClaims] = useState<PaymentClaim[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [revokingLink, setRevokingLink] = useState(false);
   const [cancellingInviteToken, setCancellingInviteToken] = useState<string | null>(null);
   const [removingMemberEmail, setRemovingMemberEmail] = useState<string | null>(null);
   const [processingPaymentId, setProcessingPaymentId] = useState<string | null>(null);
+  const [archivingClaimId, setArchivingClaimId] = useState<string | null>(null);
   const [confirmingDeleteCaixa, setConfirmingDeleteCaixa] = useState(false);
   const [deletingCaixa, setDeletingCaixa] = useState(false);
+  const [generatingPublicId, setGeneratingPublicId] = useState(false);
   const [managerProfile, setManagerProfile] = useState<UserProfile | null>(null);
   const [preparingSchedule, setPreparingSchedule] = useState(false);
   const [advancingMonth, setAdvancingMonth] = useState(false);
@@ -121,6 +125,8 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
   const [historyMemberFilter, setHistoryMemberFilter] = useState<string>("todos");
   const [notesModalOpen, setNotesModalOpen] = useState(false);
   const [chartsModalOpen, setChartsModalOpen] = useState(false);
+  const [draggedMemberId, setDraggedMemberId] = useState<string | null>(null);
+  const [savingScheduleOrder, setSavingScheduleOrder] = useState(false);
   const [cacheReady, setCacheReady] = useState(false);
 
   useEffect(() => {
@@ -199,6 +205,16 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
   }, [cacheReady, caixa, caixaId, convites, managerProfile, membros, notas, pagamentos]);
 
   const isGerente = caixa?.gerenteId === user?.uid;
+  const isProManager = getEffectivePlano(profile) === "pro";
+  useEffect(() => {
+    if (!isGerente || !caixa?.publicId) {
+      setPaymentClaims([]);
+      return;
+    }
+
+    return subscribePaymentClaims(caixa.publicId, setPaymentClaims);
+  }, [caixa?.publicId, isGerente]);
+
   const meAsMember = membros.find(
     (membro) => membro.userId === user?.uid && membro.status === "ativo",
   );
@@ -222,9 +238,23 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
   const orderedSchedule = useMemo(
     () =>
       [...activeMembers]
-        .filter((membro) => membro.mesRecebimento != null)
-        .sort((a, b) => (a.mesRecebimento ?? 0) - (b.mesRecebimento ?? 0)),
+        .sort((a, b) => {
+          const aOrder = a.ordemSorteio ?? a.mesRecebimento ?? 999;
+          const bOrder = b.ordemSorteio ?? b.mesRecebimento ?? 999;
+
+          if (aOrder !== bOrder) {
+            return aOrder - bOrder;
+          }
+
+          return a.nome.localeCompare(b.nome, "pt-BR");
+        }),
     [activeMembers],
+  );
+  const scheduleCanBeEdited = Boolean(
+    isGerente &&
+    caixa &&
+    (caixa.mesAtual === 1 || isProManager) &&
+    activeMembers.some((membro) => (membro.mesRecebimento ?? 999) >= caixa.mesAtual),
   );
   const scheduleReady =
     activeMembers.length > 0 && activeMembers.every((membro) => membro.mesRecebimento != null);
@@ -253,6 +283,10 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
       ),
     [convites, membros],
   );
+  const pendingPaymentClaims = useMemo(
+    () => paymentClaims.filter((claim) => claim.status === "pending"),
+    [paymentClaims],
+  );
   const memberNameMap = useMemo(
     () => new Map(membros.map((membro) => [membro.userId, membro.nome])),
     [membros],
@@ -275,14 +309,14 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
         const confirmadosCount = pagamentosDoMes.filter(
           (pagamento) => pagamento.status === "confirmado",
         ).length;
-        const adimplencia =
+        const adimplência =
           activeMembers.length > 0 ? Math.round((confirmadosCount / activeMembers.length) * 100) : 0;
 
         return {
-          mes: `Mes ${mes}`,
+          mes: `Mês ${mes}`,
           confirmado,
           pendente,
-          adimplencia,
+          adimplência,
         };
       }),
     [activeMembers.length, caixa?.totalMeses, pagamentos],
@@ -334,18 +368,28 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
         return (b.declaradoEm?.toMillis?.() ?? 0) - (a.declaradoEm?.toMillis?.() ?? 0);
       });
   }, [historyMemberFilter, historyMonthFilter, historyStatusFilter, pagamentos]);
-  const caixaPublicId = useMemo(() => getCaixaPublicId(caixaId), [caixaId]);
+  const caixaPublicId = caixa?.publicId ?? "";
+  const caixaFileId = caixaPublicId || "sem-id-publico";
+  const publicConsultUrl = useMemo(() => {
+    if (!caixa?.publicId) {
+      return "";
+    }
+
+    const baseUrl = typeof window === "undefined" ? "" : `${window.location.origin}`;
+
+    return `${baseUrl}/consultar?id=${encodeURIComponent(caixa.publicId)}`;
+  }, [caixa?.publicId]);
   const inviteUrl = useMemo(() => {
     if (!caixa) {
       return "";
     }
 
-    const suffix = `${slugifyCaixaNome(caixa.nome)}-${caixaPublicId.toLowerCase()}`;
+    const suffix = `${slugifyCaixaNome(caixa.nome)}-${(caixa.publicId ?? caixaId).toLowerCase()}`;
     const baseUrl =
       typeof window === "undefined" ? "" : `${window.location.origin}`;
 
     return `${baseUrl}/entrar?convite=${caixa.linkConvite}&caixa=${encodeURIComponent(suffix)}`;
-  }, [caixa, caixaPublicId]);
+  }, [caixa, caixaId]);
 
   useEffect(() => {
     setNoteDrafts((current) => {
@@ -369,10 +413,10 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
     try {
       setSubmitting(true);
       await declarePagamento(caixaId, caixa, user.uid, caixa.valorMensal);
-      toast.success("Pagamento marcado como pendente de confirmacao do gerente.");
+      toast.success("Pagamento marcado como pendente de confirmação do gerente.");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel registrar seu pagamento.";
+        error instanceof Error ? error.message : "Não foi possível registrar seu pagamento.";
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -386,14 +430,78 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
 
     try {
       await navigator.clipboard.writeText(inviteUrl);
-      toast.success("Link de convite copiado.");
+      toast.success("Link de convite cópiado.");
     } catch (error) {
       // Some in-app browsers block clipboard writes without explicit permission.
       // The full link is already visible on screen, so guide the user to copy it manually.
-      toast.error("Seu navegador bloqueou a copia automatica. Use o link exibido acima para copiar manualmente.");
+      toast.error("Seu navegador bloqueou a cópia automática. Use o link exibido acima para cópiar manualmente.");
       // eslint-disable-next-line no-console
-      console.warn("Falha ao copiar link de convite automaticamente.", error);
+      console.warn("Falha ao cópiar link de convite automaticamente.", error);
     }
+  }
+
+  async function handleGeneratéPublicId() {
+    try {
+      setGeneratingPublicId(true);
+      const publicId = await generatePublicIdForCaixa(caixaId);
+      toast.success(`ID público criado: ${publicId}`);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Não foi possível gerar o ID público.";
+      toast.error(message);
+    } finally {
+      setGeneratingPublicId(false);
+    }
+  }
+
+  async function handleCopyPublicId() {
+    if (!caixaPublicId) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(caixaPublicId);
+      toast.success("ID público cópiado.");
+    } catch (error) {
+      toast.error("Seu navegador bloqueou a cópia automática. O ID está visível na tela.");
+      // eslint-disable-next-line no-console
+      console.warn("Falha ao cópiar ID público automaticamente.", error);
+    }
+  }
+
+  async function handleCopyPublicConsultLink() {
+    if (!publicConsultUrl) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(publicConsultUrl);
+      toast.success("Link público cópiado.");
+    } catch (error) {
+      toast.error("Seu navegador bloqueou a cópia automática. Use o link exibido acima.");
+      // eslint-disable-next-line no-console
+      console.warn("Falha ao cópiar link público automaticamente.", error);
+    }
+  }
+
+  function handleSharePublicConsultOnWhatsApp() {
+    if (!caixa || !caixaPublicId || !publicConsultUrl) {
+      return;
+    }
+
+    const message = [
+      `Consulta do caixa ${caixa.nome}`,
+      "",
+      `ID público: ${caixaPublicId}`,
+      "Use este link para consultar as informações básicas do caixa sem criar conta:",
+      publicConsultUrl,
+    ].join("\n");
+
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(message)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
   }
 
   function handleShareInviteOnWhatsApp() {
@@ -401,14 +509,14 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
       return;
     }
     const message = [
-      "🎉 Voce foi convidado para um caixa no Caixa dos Amigos.",
+      "🎉 Você foi convidado para acompanhar um caixa no Caixa dos Amigos.",
       "",
       `📦 Caixa: ${caixa.nome}`,
       `💸 Valor por membro: R$ ${caixa.valorMensal.toFixed(2)}`,
       `🏆 Total por ponto: R$ ${caixa.totalPorMes.toFixed(2)}`,
-      `🗓️ Duracao: ${caixa.totalMeses} meses`,
+      `🗓️ Duração: ${caixa.totalMeses} meses`,
       "",
-      "Entre por este link para ver os detalhes e confirmar sua entrada:",
+      "Acesse pelo link para ver os detalhes:",
       inviteUrl,
     ].join("\n");
 
@@ -423,10 +531,10 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
     try {
       setRevokingLink(true);
       await regeneratePublicInviteLink(caixaId);
-      toast.success("Link publico revogado e recriado com sucesso.");
+      toast.success("Link público revogado e recriado com sucesso.");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel revogar o link atual.";
+        error instanceof Error ? error.message : "Não foi possível revogar o link atual.";
       toast.error(message);
     } finally {
       setRevokingLink(false);
@@ -440,7 +548,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
       toast.success("Convite pendente cancelado.");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel cancelar o convite.";
+        error instanceof Error ? error.message : "Não foi possível cancelar o convite.";
       toast.error(message);
     } finally {
       setCancellingInviteToken(null);
@@ -451,7 +559,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
     const memberEmail = membro.email?.trim().toLowerCase();
 
     if (!memberEmail) {
-      toast.error("Nao foi possivel identificar o membro para remocao.");
+      toast.error("Não foi possível identificar o membro para remoção.");
       return;
     }
 
@@ -461,7 +569,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
       toast.success("Membro removido do caixa com sucesso.");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel remover o membro.";
+        error instanceof Error ? error.message : "Não foi possível remover o membro.";
       toast.error(message);
     } finally {
       setRemovingMemberEmail(null);
@@ -479,7 +587,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
       toast.success("Pagamento confirmado com sucesso.");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel confirmar o pagamento.";
+        error instanceof Error ? error.message : "Não foi possível confirmar o pagamento.";
       toast.error(message);
     } finally {
       setProcessingPaymentId(null);
@@ -497,10 +605,47 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
       toast.success("Pagamento rejeitado.");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel rejeitar o pagamento.";
+        error instanceof Error ? error.message : "Não foi possível rejeitar o pagamento.";
       toast.error(message);
     } finally {
       setProcessingPaymentId(null);
+    }
+  }
+
+  async function handleArchivePaymentClaim(claim: PaymentClaim) {
+    if (!caixa?.publicId) {
+      return;
+    }
+
+    try {
+      setArchivingClaimId(claim.id);
+      await archivePaymentClaim(caixa.publicId, claim.id);
+      toast.success("Aviso arquivado. O pagamento continua dependendo da confirmação manual.");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Não foi possível arquivar o aviso.";
+      toast.error(message);
+    } finally {
+      setArchivingClaimId(null);
+    }
+  }
+
+  async function handleCopyPaymentClaim(claim: PaymentClaim) {
+    const message = [
+      `Aviso de pagamento - ${caixa?.nome ?? "Caixa"}`,
+      `Nome: ${claim.nome}`,
+      `Telefone: ${claim.telefone ?? "não informado"}`,
+      `Mês: ${claim.mes}`,
+      `Mensagem: ${claim.mensagem ?? "sem mensagem"}`,
+    ].join("\n");
+
+    try {
+      await navigator.clipboard.writeText(message);
+      toast.success("Aviso cópiado.");
+    } catch (error) {
+      toast.error("Seu navegador bloqueou a cópia automatica.");
+      // eslint-disable-next-line no-console
+      console.warn("Falha ao cópiar aviso de pagamento.", error);
     }
   }
 
@@ -515,7 +660,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
       toast.success("Pagamento registrado e confirmado pelo gerente.");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel registrar o pagamento.";
+        error instanceof Error ? error.message : "Não foi possível registrar o pagamento.";
       toast.error(message);
     } finally {
       setProcessingPaymentId(null);
@@ -535,7 +680,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
       window.location.assign("/painel");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel excluir o caixa.";
+        error instanceof Error ? error.message : "Não foi possível excluir o caixa.";
       toast.error(message);
     } finally {
       setDeletingCaixa(false);
@@ -551,10 +696,10 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
     try {
       setSavingNoteMonth(mes);
       await saveCaixaNota(caixaId, mes, noteDrafts[mes] ?? "", user.uid);
-      toast.success(`Nota do mes ${mes} salva com sucesso.`);
+      toast.success(`Nota do mês ${mes} salva com sucesso.`);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel salvar a nota.";
+        error instanceof Error ? error.message : "Não foi possível salvar a nota.";
       toast.error(message);
     } finally {
       setSavingNoteMonth(null);
@@ -566,10 +711,10 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
       setDeletingNoteId(nota.id);
       await deleteCaixaNota(caixaId, nota.id);
       setNoteDrafts((current) => ({ ...current, [nota.mes]: "" }));
-      toast.success(`Nota do mes ${nota.mes} removida.`);
+      toast.success(`Nota do mês ${nota.mes} removida.`);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel remover a nota.";
+        error instanceof Error ? error.message : "Não foi possível remover a nota.";
       toast.error(message);
     } finally {
       setDeletingNoteId(null);
@@ -580,13 +725,61 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
     try {
       setPreparingSchedule(true);
       await prepareCaixaSchedule(caixaId);
-      toast.success("Rodizio do caixa preparado com sucesso.");
+      toast.success("Rodízio do caixa preparado com sucesso.");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel preparar o rodizio.";
+        error instanceof Error ? error.message : "Não foi possível preparar o rodízio.";
       toast.error(message);
     } finally {
       setPreparingSchedule(false);
+    }
+  }
+
+  async function handleReorderMembers(targetMemberId: string) {
+    if (!draggedMemberId || draggedMemberId === targetMemberId || !caixa || !scheduleCanBeEdited) {
+      setDraggedMemberId(null);
+      return;
+    }
+
+    const currentOrder = orderedSchedule;
+    const fromIndex = currentOrder.findIndex((membro) => membro.userId === draggedMemberId);
+    const toIndex = currentOrder.findIndex((membro) => membro.userId === targetMemberId);
+
+    if (fromIndex < 0 || toIndex < 0) {
+      setDraggedMemberId(null);
+      return;
+    }
+
+    const dragged = currentOrder[fromIndex];
+    const target = currentOrder[toIndex];
+    const draggedAlreadyReceived = (dragged.mesRecebimento ?? 0) < caixa.mesAtual;
+    const targetAlreadyReceived = (target.mesRecebimento ?? 0) < caixa.mesAtual;
+
+    if ((draggedAlreadyReceived || targetAlreadyReceived) && !isProManager) {
+      toast.error("Depois de iniciar o caixa, apenas o plano Pro pode trocar posições futuras.");
+      setDraggedMemberId(null);
+      return;
+    }
+
+    if (draggedAlreadyReceived || targetAlreadyReceived) {
+      toast.error("Só é possível trocar membros que ainda não receberam o ponto.");
+      setDraggedMemberId(null);
+      return;
+    }
+
+    const nextOrder = [...currentOrder];
+    nextOrder.splice(fromIndex, 1);
+    nextOrder.splice(toIndex, 0, dragged);
+
+    try {
+      setSavingScheduleOrder(true);
+      await updateMemberScheduleOrder(caixaId, nextOrder);
+      toast.success("Ordem do rodízio atualizada.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível atualizar a ordem.");
+    } finally {
+      setSavingScheduleOrder(false);
+      setDraggedMemberId(null);
     }
   }
 
@@ -598,11 +791,11 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
       if (result.status === "encerrado") {
         toast.success("Caixa encerrado com todos os pagamentos confirmados.");
       } else {
-        toast.success(`Caixa avancou para o mes ${result.mesAtual}.`);
+        toast.success(`Caixa avançou para o mês ${result.mesAtual}.`);
       }
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel avancar o mes.";
+        error instanceof Error ? error.message : "Não foi possível avançar o mês.";
       toast.error(message);
     } finally {
       setAdvancingMonth(false);
@@ -617,13 +810,13 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `caixa-${caixaPublicId.toLowerCase()}-backup.json`;
+      anchor.download = `caixa-${caixaFileId.toLowerCase()}-backup.json`;
       anchor.click();
       URL.revokeObjectURL(url);
       toast.success("Backup JSON exportado com sucesso.");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel exportar o backup.";
+        error instanceof Error ? error.message : "Não foi possível exportar o backup.";
       toast.error(message);
     }
   }
@@ -667,7 +860,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `caixa-${caixaPublicId.toLowerCase()}-historico.csv`;
+    anchor.download = `caixa-${caixaFileId.toLowerCase()}-histórico.csv`;
     anchor.click();
     URL.revokeObjectURL(url);
     toast.success("CSV exportado com sucesso.");
@@ -678,7 +871,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
       return;
     }
 
-    const monthLabel = `Mes ${caixa.mesAtual}`;
+    const monthLabel = `Mês ${caixa.mesAtual}`;
     const lines = activeMembers.map((membro) => {
       const status = currentMonthStatusMap.get(membro.userId) ?? "sem pagamento";
       return `- ${membro.nome}: ${status}`;
@@ -688,7 +881,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
     ).length;
     const pendingCount = activeMembers.length - confirmedCount;
     const donoLabel = donoDoPonto
-      ? `${donoDoPonto.nome} (${donoDoPonto.email ?? "sem email"})`
+      ? `${donoDoPonto.nome} (${donoDoPonto.email ?? "sem e-mail"})`
       : "a definir";
 
     const message = [
@@ -696,7 +889,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
       "",
       `📦 Caixa: ${caixa.nome}`,
       `🆔 ID: ${caixaPublicId}`,
-      `👑 Gerente: ${managerProfile?.nome ?? "Gerente do caixa"} (${managerProfile?.email ?? caixa.gerenteEmail ?? "email indisponivel"})`,
+      `👑 Gerente: ${managerProfile?.nome ?? "Gerente do caixa"} (${managerProfile?.email ?? caixa.gerenteEmail ?? "e-mail indisponível"})`,
       `🏆 Dono do ponto: ${donoLabel}`,
       `💸 Valor por membro: R$ ${caixa.valorMensal.toFixed(2)}`,
       `🎯 Total por ponto: R$ ${caixa.totalPorMes.toFixed(2)}`,
@@ -726,14 +919,14 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
     });
 
     const gerenteNome = managerProfile?.nome ?? "Gerente do caixa";
-    const gerenteEmail = managerProfile?.email ?? caixa.gerenteEmail ?? "email indisponivel";
+    const gerenteEmail = managerProfile?.email ?? caixa.gerenteEmail ?? "e-mail indisponível";
     const donoLabel = donoDoPonto ? `${donoDoPonto.nome}` : "A definir";
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const marginX = 14;
     const contentWidth = pageWidth - marginX * 2;
     const tableColumns = [
-      { key: "mes", label: "Mes", width: 18 },
+      { key: "mes", label: "Mês", width: 18 },
       { key: "membro", label: "Membro", width: 54 },
       { key: "valor", label: "Valor", width: 24 },
       { key: "status", label: "Status", width: 24 },
@@ -753,7 +946,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
       pdf.text("Caixa dos Amigos", marginX + 6, 21);
       pdf.setFontSize(10);
       pdf.setFont("helvetica", "normal");
-      pdf.text(titleSuffix ?? "Relatorio financeiro do caixa", pageWidth - marginX - 6, 21, {
+      pdf.text(titleSuffix ?? "Relatório financeiro do caixa", pageWidth - marginX - 6, 21, {
         align: "right",
       });
       pdf.setTextColor(31, 41, 55);
@@ -809,8 +1002,8 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(10);
     pdf.setTextColor(71, 85, 105);
-    pdf.text(`ID unico: ${caixaPublicId}`, marginX, cursorY);
-    pdf.text(`Mes atual: ${caixa.mesAtual} de ${caixa.totalMeses}`, pageWidth - marginX, cursorY, {
+    pdf.text(`ID público: ${caixaPublicId || "ainda não gerado"}`, marginX, cursorY);
+    pdf.text(`Mês atual: ${caixa.mesAtual} de ${caixa.totalMeses}`, pageWidth - marginX, cursorY, {
       align: "right",
     });
     cursorY += 5;
@@ -848,8 +1041,8 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(10);
     pdf.setTextColor(15, 23, 42);
-    pdf.text("Grafico de arrecadacao", marginX + 4, chartBoxY + 7);
-    pdf.text("Distribuicao do mes atual", marginX + chartBoxWidth + 10, chartBoxY + 7);
+    pdf.text("Grafico de arrecadação", marginX + 4, chartBoxY + 7);
+    pdf.text("Distribuição do mês atual", marginX + chartBoxWidth + 10, chartBoxY + 7);
 
     const innerChartX = marginX + 4;
     const innerChartY = chartBoxY + 12;
@@ -896,7 +1089,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
     pdf.setTextColor(15, 23, 42);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(12);
-    pdf.text("Historico filtrado de pagamentos", marginX, cursorY);
+    pdf.text("Histórico filtrado de pagamentos", marginX, cursorY);
     cursorY += 7;
 
     const drawTableHeader = () => {
@@ -932,7 +1125,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
       pdf.setFontSize(10);
       pdf.setTextColor(100, 116, 139);
       pdf.roundedRect(marginX, cursorY, contentWidth, 16, 3, 3, "S");
-      pdf.text("Nao ha pagamentos para os filtros atuais.", marginX + 4, cursorY + 9);
+      pdf.text("Não ha pagamentos para os filtros atuais.", marginX + 4, cursorY + 9);
     } else {
       drawTableHeader();
 
@@ -1004,7 +1197,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
 
     drawFooter();
 
-    pdf.save(`caixa-${caixaPublicId.toLowerCase()}-relatorio.pdf`);
+    pdf.save(`caixa-${caixaFileId.toLowerCase()}-relatorio.pdf`);
     toast.success("PDF exportado com sucesso.");
   }
 
@@ -1026,9 +1219,9 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
         className="soft-app-shell px-4 py-8"
       >
         <div className="mx-auto max-w-2xl rounded-3xl border border-white/70 bg-white/90 p-8 text-center shadow-sm dark:border-white/10 dark:bg-slate-950/80">
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Acesso nao disponivel</h1>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Acesso não disponivel</h1>
           <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-            Voce nao participa deste caixa ou foi removido dele.
+            Você não participa deste caixa ou foi removido dele.
           </p>
           <Link
             className="mt-6 inline-flex rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white"
@@ -1055,7 +1248,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
         {!isOnline ? (
-          <OfflineBanner message="Voce esta offline. Exibindo a ultima versao salva deste caixa." />
+          <OfflineBanner message="Você está offline. Exibindo a ultima versao salva deste caixa." />
         ) : null}
         <div className="flex flex-col gap-4 rounded-[2rem] border border-[#dbe7df] bg-white p-6 shadow-[0_22px_54px_rgba(33,79,63,0.08)] dark:border-white/10 dark:bg-slate-950/75 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
@@ -1076,7 +1269,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
           <div className="flex flex-wrap items-center gap-2">
             <ThemeToggle />
             <Badge className="bg-[#fff4d8] text-[#8B6A11] hover:bg-[#fff4d8]">
-              Mes {caixa.mesAtual}
+              Mês {caixa.mesAtual}
             </Badge>
             <Badge className="bg-[#eff4ef] text-[#214F3F] hover:bg-[#eff4ef]">
               {caixa.status}
@@ -1091,13 +1284,13 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
           <Card className="border-[#dbe7df] bg-white shadow-[0_20px_48px_rgba(33,79,63,0.08)] dark:border-white/10 dark:bg-slate-950/80">
             <CardHeader>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <CardTitle className="text-[#13231C] dark:text-white">Resumo do mes atual</CardTitle>
+                <CardTitle className="text-[#13231C] dark:text-white">Resumo do mês atual</CardTitle>
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" className="h-10" onClick={() => setNotesModalOpen(true)}>
-                    Notas por mes
+                    Notas por mês
                   </Button>
                   <Button variant="outline" className="h-10" onClick={() => setChartsModalOpen(true)}>
-                    Graficos do caixa
+                    Gráficos do caixa
                   </Button>
                 </div>
               </div>
@@ -1105,18 +1298,18 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
             <CardContent className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-[1.5rem] border border-[#dbe7df] bg-[#f9fbf9] p-4 dark:border-white/10 dark:bg-slate-900/80">
-                  <p className="text-sm text-[#657469]">ID unico do caixa</p>
+                  <p className="text-sm text-[#657469]">ID público do caixa</p>
                   <p className="mt-2 break-all font-mono text-sm font-semibold text-[#13231C] dark:text-white">
-                    {caixaPublicId}
+                    {caixaPublicId || "Gerar na area de compartilhamento"}
                   </p>
                 </div>
                 <div className="rounded-[1.5rem] border border-[#cfe4d5] bg-[#E2F3E7] p-4">
                   <p className="text-sm text-[#2F7258]">Gerente do caixa</p>
                   <p className="mt-2 text-base font-semibold text-[#13231C]">
-                    {managerProfile?.nome ?? "Gerente nao identificado"}
+                    {managerProfile?.nome ?? "Gerente não identificado"}
                   </p>
                   <p className="mt-1 break-all text-sm text-[#2F7258]">
-                    {managerProfile?.email ?? caixa.gerenteEmail ?? "Email indisponivel"}
+                    {managerProfile?.email ?? caixa.gerenteEmail ?? "E-mail indisponível"}
                   </p>
                 </div>
               </div>
@@ -1138,14 +1331,14 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
               </div>
 
               <div className="rounded-[1.8rem] border border-dashed border-[#cfe4d5] bg-[#F3FAF5] p-4">
-                <p className="text-sm font-medium text-[#214F3F]">Dono do ponto do mes</p>
+                <p className="text-sm font-medium text-[#214F3F]">Dono do ponto do mês</p>
                 <p className="mt-1 text-base text-[#2F7258]">
-                  {donoDoPonto ? donoDoPonto.nome : "Rodizio ainda nao preparado"}
+                  {donoDoPonto ? donoDoPonto.nome : "Rodízio ainda não preparado"}
                 </p>
                 <p className="mt-1 text-sm text-[#2F7258]">
                   {donoDoPonto?.mesRecebimento
-                    ? `Neste momento, o caixa esta no mes ${caixa.mesAtual}. Como ${donoDoPonto.nome} ficou com o mes ${donoDoPonto.mesRecebimento} no rodizio, ele e quem recebe agora.`
-                    : "Primeiro voce prepara o rodizio. Depois disso, cada membro recebe no mes igual a sua posicao."}
+                    ? `Neste momento, o caixa está no mês ${caixa.mesAtual}. Como ${donoDoPonto.nome} ficou com o mês ${donoDoPonto.mesRecebimento} no rodízio, ele é quem recebe agora.`
+                    : "Primeiro você prepara o rodízio. Depois disso, cada membro recebe no mês igual a sua posição."}
                 </p>
               </div>
 
@@ -1154,23 +1347,23 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                   <div className="rounded-[1.5rem] border border-[#cfe4d5] bg-[#E2F3E7] p-4">
                     <p className="text-sm text-[#2F7258]">Recebe agora</p>
                     <p className="mt-2 text-lg font-semibold text-[#13231C]">
-                      {donoDoPonto?.nome ?? "Nao definido"}
+                      {donoDoPonto?.nome ?? "Não definido"}
                     </p>
-                    <p className="mt-1 text-sm text-[#2F7258]">Mes {caixa.mesAtual}</p>
+                    <p className="mt-1 text-sm text-[#2F7258]">Mês {caixa.mesAtual}</p>
                   </div>
                   <div className="rounded-[1.5rem] border border-[#ecd69f] bg-[#fff8e7] p-4">
                     <p className="text-sm text-[#8B6A11]">Proximo a receber</p>
                     <p className="mt-2 text-lg font-semibold text-[#13231C]">
-                      {nextDonoDoPonto?.nome ?? "Ultimo mes do ciclo"}
+                      {nextDonoDoPonto?.nome ?? "Último mês do ciclo"}
                     </p>
                     <p className="mt-1 text-sm text-[#8B6A11]">
                       {nextDonoDoPonto?.mesRecebimento
-                        ? `Mes ${nextDonoDoPonto.mesRecebimento}`
-                        : "Sem proximo mes apos este"}
+                        ? `Mês ${nextDonoDoPonto.mesRecebimento}`
+                        : "Sem próximo mês após este"}
                     </p>
                   </div>
                   <div className="rounded-[1.5rem] border border-[#dbe7df] bg-[#f9fbf9] p-4 dark:border-white/10 dark:bg-slate-900/80">
-                    <p className="text-sm text-[#657469]">Fila do rodizio</p>
+                    <p className="text-sm text-[#657469]">Fila do rodízio</p>
                     <div className="mt-2 space-y-2">
                       {schedulePreview.map((membro) => (
                         <div
@@ -1182,66 +1375,27 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                           }`}
                         >
                           <span className="font-medium">{membro.nome}</span>
-                          <span>Mes {membro.mesRecebimento}</span>
+                          <span>Mês {membro.mesRecebimento}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
               ) : null}
+
 
-              {isGerente ? (
-                <div className="rounded-[1.8rem] border border-[#dbe7df] bg-[#f9fbf9] p-4 dark:border-white/10 dark:bg-slate-900/80">
-                  <p className="text-sm font-medium text-[#13231C] dark:text-white">Avanco do caixa</p>
-                  <p className="mt-1 text-sm text-[#657469]">
-                    {scheduleReady
-                      ? `Pagamentos confirmados neste mes: ${confirmedPaymentsCount}/${activeMembers.length}.`
-                      : `Ative ${caixa.totalMeses} membros e prepare o rodizio antes de avancar.`}
-                  </p>
-                  <div className="mt-3 rounded-[1.4rem] border border-[#dbe7df] bg-white p-3 text-sm text-[#657469]">
-                    <p className="font-medium text-[#13231C] dark:text-white">Como o Dono do ponto e definido</p>
-                    <p className="mt-1">
-                      O rodizio automatico organiza os membros por ordem de entrada no caixa.
-                      Quem ficar em 1 recebe no mes 1, quem ficar em 2 recebe no mes 2, e assim
-                      por diante ate o ultimo membro.
-                    </p>
-                    <p className="mt-1">
-                      Quando voce clica em <span className="font-medium">Encerrar mes e avancar</span>,
-                      o app muda do mes atual para o proximo e o novo Dono do ponto passa a ser o
-                      membro que estiver vinculado a esse mes.
-                    </p>
-                  </div>
-                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                    <Button
-                      className="h-10 bg-[#214F3F] text-white hover:bg-[#183b2f]"
-                      disabled={
-                        preparingSchedule ||
-                        scheduleReady ||
-                        activeMembers.length !== caixa.totalMeses
-                      }
-                      onClick={handlePrepareSchedule}
-                    >
-                      {preparingSchedule ? "Preparando..." : "Preparar rodizio automatico"}
-                    </Button>
-                    <Button
-                      className="h-10 bg-[#2F7258] text-white hover:bg-[#255a46]"
-                      disabled={advancingMonth || !scheduleReady}
-                      onClick={handleAdvanceMonth}
-                    >
-                      {advancingMonth
-                        ? "Avancando..."
-                        : caixa.mesAtual >= caixa.totalMeses
-                          ? "Encerrar caixa"
-                          : "Encerrar mes e avancar"}
-                    </Button>
-                  </div>
-                  {scheduleReady && remainingPaymentsCount > 0 ? (
-                    <p className="mt-2 text-xs text-[#8B6A11]">
-                      Ainda faltam {remainingPaymentsCount} pagamentos confirmados para liberar o
-                      avanco deste mes.
-                    </p>
-                  ) : null}
-                </div>
+              {isGerente && scheduleReady ? (
+                <Button
+                  className="h-10 w-full bg-[#2F7258] text-white hover:bg-[#255a46] sm:w-auto"
+                  disabled={advancingMonth || remainingPaymentsCount > 0}
+                  onClick={handleAdvanceMonth}
+                >
+                  {advancingMonth
+                    ? "Avançando..."
+                    : caixa.mesAtual >= caixa.totalMeses
+                      ? "Encerrar caixa"
+                      : "Encerrar mês e avançar"}
+                </Button>
               ) : null}
 
               {!isGerente && meAsMember ? (
@@ -1255,7 +1409,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                   <div
                     className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${statusTone(myPayment?.status)}`}
                   >
-                    {myPayment?.status ? myPayment.status : "ainda nao marcado"}
+                    {myPayment?.status ? myPayment.status : "ainda não marcado"}
                   </div>
                   <Button
                     className="h-11 w-full bg-white text-[#214F3F] hover:bg-[#f2f6f3]"
@@ -1267,7 +1421,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                       : canRedeclarePayment
                         ? "Marcar novamente como pago"
                         : myPayment
-                        ? "Pagamento ja marcado"
+                        ? "Pagamento já marcado"
                         : "Marcar como pago"}
                   </Button>
                 </div>
@@ -1281,16 +1435,65 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                       <div className="space-y-3">
                         <div>
                           <p className="text-sm font-medium text-slate-900 dark:text-white">
-                            Membros e compartilhamento
+                            Participantes e consulta pública
                           </p>
                           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                            Cadastre participantes e compartilhe as informacoes do caixa pelo link
-                            enquanto a consulta publica por ID e preparada.
+                            Cadastre participantes e compartilhe o ID público para consulta sem
+                            exigir login dos membros.
                           </p>
                         </div>
                         <div className="rounded-2xl border border-[#dbe7df] bg-white px-4 py-3 dark:border-white/10 dark:bg-[rgba(15,23,42,0.82)]">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                              <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#657469] dark:text-slate-400">
+                                Consulta dos participantes
+                              </p>
+                              <p className="mt-1 text-sm font-semibold text-[#13231C] dark:text-white">
+                                {caixaPublicId || "Este caixa ainda não tem ID público"}
+                              </p>
+                              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                                Envie este ID para os participantes consultarem o caixa sem precisar
+                                criar conta.
+                              </p>
+                              {publicConsultUrl ? (
+                                <p className="mt-2 break-all text-xs text-slate-500 dark:text-slate-400">
+                                  {publicConsultUrl}
+                                </p>
+                              ) : null}
+                            </div>
+                            {!caixaPublicId ? (
+                              <Button
+                                className="h-10 shrink-0"
+                                disabled={generatingPublicId}
+                                onClick={handleGeneratéPublicId}
+                              >
+                                {generatingPublicId ? "Gerando..." : "Gerar ID público"}
+                              </Button>
+                            ) : null}
+                          </div>
+                          {caixaPublicId ? (
+                            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                              <Button className="h-10" onClick={handleCopyPublicId}>
+                                Copiar ID
+                              </Button>
+                              <Button
+                                className="h-10 border border-[#BCD5C4] bg-white text-[#214F3F] hover:bg-[#f2f6f3]"
+                                onClick={handleCopyPublicConsultLink}
+                              >
+                                Copiar link público
+                              </Button>
+                              <Button
+                                className="h-10 bg-emerald-700 text-white hover:bg-emerald-800"
+                                onClick={handleSharePublicConsultOnWhatsApp}
+                              >
+                                Compartilhar no WhatsApp
+                              </Button>
+                            </div>
+                          ) : null}
+                        </div>
+                        <div className="rounded-2xl border border-[#dbe7df] bg-white px-4 py-3 dark:border-white/10 dark:bg-[rgba(15,23,42,0.82)]">
                           <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#657469] dark:text-slate-400">
-                            Link e ID do caixa
+                            Convite para entrada no app
                           </p>
                           <p className="mt-1 text-sm font-semibold text-[#13231C] dark:text-white">
                             {caixa.nome} • {caixaPublicId}
@@ -1318,8 +1521,8 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                           </Button>
                         </div>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Ao revogar, o link atual deixa de funcionar e um novo link e criado para
-                          os proximos compartilhamentos do gerente.
+                          Ao revogar, o link atual deixa de funcionar e um novo link é criado para
+                          os próximos compartilhamentos do gerente.
                         </p>
                       </div>
 
@@ -1328,30 +1531,90 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                       </div>
                     </div>
                   </div>
-                  <Separator />
-                  <div className="grid gap-4 lg:grid-cols-2">
-                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/80">
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">Backup e restauracao</p>
-                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                        Exporte este caixa inteiro em JSON para recriar depois com historico, membros, pagamentos e notas.
+                  <div className="rounded-3xl border border-[#dbe7df] bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900/80">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">
+                          Avisos de pagamento
+                        </p>
+                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                          Participantes sem login podem avisar que pagaram. Revise aqui e confirme
+                          manualmente no status do mês.
+                        </p>
+                      </div>
+                      <Badge className="w-fit bg-[#fff4d8] text-[#8B6A11] hover:bg-[#fff4d8]">
+                        {pendingPaymentClaims.length} pendente
+                        {pendingPaymentClaims.length === 1 ? "" : "s"}
+                      </Badge>
+                    </div>
+
+                    {pendingPaymentClaims.length > 0 ? (
+                      <div className="mt-4 space-y-3">
+                        {pendingPaymentClaims.map((claim) => (
+                          <div
+                            key={claim.id}
+                            className="rounded-2xl border border-[#dbe7df] bg-[#f9fbf9] p-4 dark:border-white/10 dark:bg-white/5"
+                          >
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                              <div>
+                                <p className="font-semibold text-[#13231C] dark:text-white">
+                                  {claim.nome}
+                                </p>
+                                <p className="mt-1 text-sm text-[#657469] dark:text-slate-300">
+                                  Mês {claim.mes}
+                                  {claim.telefone ? ` • ${claim.telefone}` : ""}
+                                </p>
+                                {claim.mensagem ? (
+                                  <p className="mt-2 text-sm text-[#475569] dark:text-slate-300">
+                                    {claim.mensagem}
+                                  </p>
+                                ) : null}
+                                <p className="mt-2 text-xs text-[#657469] dark:text-slate-400">
+                                  Avisado em{" "}
+                                  {claim.createdAt?.toDate
+                                    ? claim.createdAt.toDate().toLocaleString("pt-BR")
+                                    : "agora"}
+                                </p>
+                              </div>
+                              <div className="flex flex-col gap-2 sm:min-w-44">
+                                <Button
+                                  className="h-10 border border-[#BCD5C4] bg-white text-[#214F3F] hover:bg-[#f2f6f3]"
+                                  onClick={() => handleCopyPaymentClaim(claim)}
+                                >
+                                  Copiar aviso
+                                </Button>
+                                <Button
+                                  className="h-10 bg-[#214F3F] text-white hover:bg-[#183b2f]"
+                                  disabled={archivingClaimId === claim.id}
+                                  onClick={() => handleArchivePaymentClaim(claim)}
+                                >
+                                  {archivingClaimId === claim.id ? "Arquivando..." : "Marcar revisado"}
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-4 rounded-2xl bg-[#f9fbf9] p-4 text-sm text-[#657469] dark:bg-white/5 dark:text-slate-300">
+                        Nenhum aviso pendente no momento.
                       </p>
+                    )}
+                  </div>
+                  <Separator />
+                  <div className="flex flex-col justify-end gap-3 rounded-[1.8rem] border border-[#dbe7df] bg-white/80 p-4 dark:border-white/10 dark:bg-slate-950/70 sm:flex-row">
                       <Button
-                        className="mt-3 h-10 bg-slate-900 text-white hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+                        className="h-10 bg-slate-900 text-white hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500"
                         onClick={handleExportBackupJson}
+                        title="Exporta um arquivo JSON com dados do caixa, membros, pagamentos e notas."
                       >
                         Exportar backup JSON
                       </Button>
-                    </div>
-                    <div className="rounded-3xl border border-red-200 bg-red-50 p-4">
-                      <p className="text-sm font-medium text-red-800">Zona de perigo</p>
-                      <p className="mt-1 text-sm text-red-700">
-                        Exclui o caixa por completo, incluindo membros, pagamentos, convites e
-                        vinculos de painel. Ideal para limpar seus testes agora.
-                      </p>
                       <Button
-                        className="mt-3 h-10 border border-red-300 bg-white text-red-700 hover:bg-red-100"
+                        className="h-10 border border-red-300 bg-white text-red-700 hover:bg-red-100"
                         disabled={deletingCaixa}
                         onClick={handleDeleteCaixa}
+                        title="Exclui o caixa por completo, incluindo membros, pagamentos, convites e vínculos de painel."
                       >
                         {deletingCaixa
                           ? "Excluindo..."
@@ -1359,7 +1622,6 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                             ? "Clique novamente para excluir"
                             : "Excluir caixa por completo"}
                       </Button>
-                    </div>
                   </div>
                 </>
               ) : null}
@@ -1367,13 +1629,87 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
           </Card>
 
           <Card className="border-white/70 bg-white/90 shadow-sm dark:border-white/10 dark:bg-slate-950/80">
-            <CardHeader>
-              <CardTitle className="text-slate-900 dark:text-white">Membros e status do mes</CardTitle>
+          <CardHeader>
+            <CardTitle className="text-slate-900 dark:text-white">Membros e status do mês</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+          <CardContent className="space-y-4">
+              {isGerente && activeMembers.length > 0 ? (
+                <div className="rounded-[1.8rem] border border-[#dbe7df] bg-[#f9fbf9] p-4 dark:border-white/10 dark:bg-slate-900/80">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-[#13231C] dark:text-white">
+                        Ordem de recebimento
+                      </p>
+                      <p className="mt-1 text-sm text-[#657469] dark:text-slate-300">
+                        Arraste os membros para definir quem recebe em cada mês. Depois que o caixa
+                        começa, a ordem fica bloqueada; no Pro, você pode trocar posições futuras
+                        quando os dois membros ainda não receberam o ponto.
+                      </p>
+                    </div>
+                    <Button
+                      className="h-10 shrink-0 bg-[#214F3F] text-white hover:bg-[#183b2f]"
+                      disabled={
+                        preparingSchedule ||
+                        scheduleReady ||
+                        activeMembers.length !== (caixa?.totalMeses ?? 0)
+                      }
+                      onClick={handlePrepareSchedule}
+                    >
+                      {preparingSchedule ? "Preparando..." : "Iniciar rodízio"}
+                    </Button>
+                  </div>
+                  <div className="mt-4 grid gap-2">
+                    {orderedSchedule.map((membro, index) => {
+                      const locked =
+                        !scheduleCanBeEdited || (membro.mesRecebimento ?? 999) < caixa.mesAtual;
+
+                      return (
+                        <div
+                          key={`ordem-${membro.userId}`}
+                          draggable={!locked && !savingScheduleOrder}
+                          onDragStart={() => setDraggedMemberId(membro.userId)}
+                          onDragOver={(event) => {
+                            if (!locked) {
+                              event.preventDefault();
+                            }
+                          }}
+                          onDrop={() => handleReorderMembers(membro.userId)}
+                          className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-sm transition ${
+                            locked
+                              ? "border-slate-200 bg-white/70 text-slate-500 dark:border-white/10 dark:bg-white/5"
+                              : "cursor-grab border-[#cfe4d5] bg-white text-[#13231C] shadow-sm active:cursor-grabbing dark:border-white/10 dark:bg-slate-950 dark:text-white"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="grid h-8 w-8 place-items-center rounded-full bg-[#E2F3E7] text-xs font-bold text-[#214F3F]">
+                              {index + 1}
+                            </span>
+                            <div>
+                              <p className="font-semibold">{membro.nome}</p>
+                              <p className="text-xs text-[#657469] dark:text-slate-400">
+                                Recebe no mês {index + 1}
+                                {locked ? " • bloqueado" : " • arraste para trocar"}
+                              </p>
+                            </div>
+                          </div>
+                          <Badge className="bg-[#fff4d8] text-[#8B6A11] hover:bg-[#fff4d8]">
+                            {savingScheduleOrder ? "Salvando..." : "Rodízio"}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
               {membros.length === 0 && pendingInvites.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-5 text-sm text-slate-600">
-                  Ainda nao ha membros neste caixa. O gerente pode cadastrar participantes por email.
+                <div className="rounded-[1.8rem] border border-dashed border-[#cfe4d5] bg-[#F6FBF7] px-4 py-6 text-sm text-[#657469] dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-300">
+                  <p className="font-semibold text-[#13231C] dark:text-white">
+                    Nenhum membro cadastrado ainda.
+                  </p>
+                  <p className="mt-1">
+                    Cadastre participantes na área de compartilhamento para começar a organizar o
+                    rodízio e os pagamentos do mês.
+                  </p>
                 </div>
               ) : (
                 <>
@@ -1403,8 +1739,8 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                           <p className="font-medium text-[#13231C] dark:text-white">{membro.nome}</p>
                           <p className="text-sm text-[#657469]">
                             {membro.ordemSorteio
-                              ? `${membro.ordemSorteio}º no rodizio • recebe no mes ${membro.mesRecebimento}`
-                              : "Ordem ainda nao definida"}
+                              ? `${membro.ordemSorteio}º no rodízio • recebe no mês ${membro.mesRecebimento}`
+                              : "Ordem ainda não definida"}
                           </p>
                         </div>
                       </div>
@@ -1414,7 +1750,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                         </Badge>
                         {membro.mesRecebimento === caixa.mesAtual ? (
                           <Badge className="bg-[#E2F3E7] text-[#214F3F] hover:bg-[#E2F3E7]">
-                            recebe neste mes
+                            recebe neste mês
                           </Badge>
                         ) : null}
                         <Badge className={statusTone(paymentStatus)}>
@@ -1486,7 +1822,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                         <div>
                           <p className="font-medium text-[#13231C] dark:text-white">{convite.emailDestino}</p>
                           <p className="text-sm text-[#657469]">
-                            Membro cadastrado pelo gerente. Aguardando confirmacao de entrada.
+                            Membro cadastrado pelo gerente. Aguardando confirmação de entrada.
                           </p>
                         </div>
                       </div>
@@ -1517,9 +1853,19 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
           </Card>
         </div>
 
-        <Card className="border-[#dbe7df] bg-white shadow-[0_20px_48px_rgba(33,79,63,0.08)] dark:border-white/10 dark:bg-slate-950/80">
+        <Card className="overflow-hidden border-[#dbe7df] bg-white shadow-[0_20px_48px_rgba(33,79,63,0.08)] dark:border-white/10 dark:bg-slate-950/80">
           <CardHeader>
-            <CardTitle className="text-[#13231C] dark:text-white">Historico de pagamentos</CardTitle>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#2F7258] dark:text-emerald-300">
+                  Financeiro
+                </p>
+                <CardTitle className="text-[#13231C] dark:text-white">Histórico de pagamentos</CardTitle>
+              </div>
+              <p className="max-w-md text-sm text-[#657469] dark:text-slate-300">
+                Filtre, exporte e compartilhe o resumo financeiro sem poluir o painel principal.
+              </p>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col gap-2 sm:flex-row" aria-label="Acoes de exportacao">
@@ -1545,7 +1891,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
             <div className="grid gap-3 md:grid-cols-3">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-[#214F3F] dark:text-slate-300" htmlFor="history-month">
-                  Filtrar por mes
+                  Filtrar por mês
                 </label>
                 <select
                   id="history-month"
@@ -1557,12 +1903,12 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                   <option value="todos">Todos os meses</option>
                   {Array.from({ length: caixa?.totalMeses ?? 0 }, (_, index) => index + 1).map((mes) => (
                     <option key={mes} value={String(mes)}>
-                      Mes {mes}
+                      Mês {mes}
                     </option>
                   ))}
                 </select>
                 <p id="history-month-help" className="text-xs text-[#657469] dark:text-slate-400">
-                  Mostra apenas os pagamentos do mes selecionado.
+                  Mostra apenas os pagamentos do mês selecionado.
                 </p>
               </div>
               <div className="space-y-2">
@@ -1582,7 +1928,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                   <option value="rejeitado">Rejeitado</option>
                 </select>
                 <p id="history-status-help" className="text-xs text-[#657469] dark:text-slate-400">
-                  Refina o historico por confirmado, pendente ou rejeitado.
+                  Refina o histórico por confirmado, pendente ou rejeitado.
                 </p>
               </div>
               <div className="space-y-2">
@@ -1604,14 +1950,14 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                   ))}
                 </select>
                 <p id="history-member-help" className="text-xs text-[#657469] dark:text-slate-400">
-                  Limita o historico ao membro selecionado.
+                  Limita o histórico ao membro selecionado.
                 </p>
               </div>
             </div>
 
             {historyRows.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-5 text-sm text-slate-600">
-                Ainda nao ha pagamentos com esses filtros.
+                Ainda não ha pagamentos com esses filtros.
               </div>
             ) : (
               <div className="space-y-3">
@@ -1625,14 +1971,14 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                         {memberNameMap.get(pagamento.membroId) ?? pagamento.membroId}
                       </p>
                       <p className="text-sm text-slate-500">
-                        Mes {pagamento.mes} • R$ {pagamento.valor.toFixed(2)}
+                        Mês {pagamento.mes} • R$ {pagamento.valor.toFixed(2)}
                       </p>
                       <p className="text-xs text-slate-500">
-                        Fonte: {pagamento.fonte === "importacao_manual" ? "importacao manual" : "app"}
+                        Fonte: {pagamento.fonte === "importacao_manual" ? "importação manual" : "app"}
                       </p>
                       {pagamento.motivoRejeicao ? (
                         <p className="text-xs text-red-600">
-                          Motivo da rejeicao: {pagamento.motivoRejeicao}
+                          Motivo da rejeição: {pagamento.motivoRejeicao}
                         </p>
                       ) : null}
                     </div>
@@ -1651,214 +1997,15 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
           </CardContent>
         </Card>
 
-        {false ? (
-        <Card className="border-white/70 bg-white/90 shadow-sm dark:border-white/10 dark:bg-slate-950/80">
-          <CardHeader>
-            <CardTitle className="text-slate-900 dark:text-white">Graficos do caixa</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid gap-6 xl:grid-cols-2">
-              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/80">
-                <p className="text-sm font-medium text-slate-900 dark:text-white">
-                  Arrecadacao por mes
-                </p>
-                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Comparativo entre valores confirmados e pendentes em cada mes.
-                </p>
-                <div className="mt-4 h-72">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartMonthData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
-                      <XAxis dataKey="mes" stroke="#64748b" fontSize={12} />
-                      <YAxis stroke="#64748b" fontSize={12} />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="confirmado" name="Confirmado" fill="#059669" radius={[8, 8, 0, 0]} />
-                      <Bar dataKey="pendente" name="Pendente" fill="#d97706" radius={[8, 8, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/80">
-                <p className="text-sm font-medium text-slate-900 dark:text-white">
-                  Tendencia de adimplencia
-                </p>
-                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Percentual de membros confirmados em cada mes.
-                </p>
-                <div className="mt-4 h-72">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartMonthData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
-                      <XAxis dataKey="mes" stroke="#64748b" fontSize={12} />
-                      <YAxis stroke="#64748b" fontSize={12} domain={[0, 100]} />
-                      <Tooltip formatter={(value) => `${String(value ?? 0)}%`} />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="adimplencia"
-                        name="Adimplencia"
-                        stroke="#2563eb"
-                        strokeWidth={3}
-                        dot={{ fill: "#2563eb", r: 4 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/80">
-              <p className="text-sm font-medium text-slate-900 dark:text-white">
-                Distribuicao do mes atual
-              </p>
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                Panorama rapido dos status de pagamento no mes atual.
-              </p>
-              <div className="mt-4 h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={currentMonthDistribution}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={70}
-                      outerRadius={110}
-                      paddingAngle={4}
-                    >
-                      {currentMonthDistribution.map((entry) => (
-                        <Cell key={entry.name} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        ) : null}
-
-        {false ? (
-        <Card className="border-white/70 bg-white/90 shadow-sm dark:border-white/10 dark:bg-slate-950/80">
-          <CardHeader>
-            <CardTitle className="text-slate-900 dark:text-white">Notas por mes</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              {Array.from({ length: caixa?.totalMeses ?? 0 }, (_, index) => index + 1).map((mes) => {
-                const nota = notesByMonth.get(mes);
-                const draft = noteDrafts[mes] ?? nota?.texto ?? "";
-                const hasContent = Boolean((nota?.texto ?? "").trim() || draft.trim());
-
-                return (
-                  <details
-                    key={mes}
-                    open={mes === caixa?.mesAtual}
-                    className={`group overflow-hidden rounded-3xl border ${
-                      mes === caixa?.mesAtual
-                        ? "border-emerald-200 bg-emerald-50"
-                        : "border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-slate-900/80"
-                    }`}
-                  >
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4">
-                      <div className="space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-medium text-slate-900 dark:text-white">Mes {mes}</p>
-                          {mes === caixa?.mesAtual ? (
-                            <Badge className="bg-emerald-100 text-emerald-900 hover:bg-emerald-100">
-                              mes atual
-                            </Badge>
-                          ) : null}
-                          {hasContent ? (
-                            <Badge className="bg-sky-100 text-sky-900 hover:bg-sky-100">
-                              com nota
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-slate-200 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200">
-                              vazio
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-slate-600 dark:text-slate-300">
-                          {nota?.texto?.trim()
-                            ? `${nota.texto.trim().slice(0, 90)}${nota.texto.trim().length > 90 ? "..." : ""}`
-                            : "Sem observacoes registradas neste mes."}
-                        </p>
-                      </div>
-                      <span className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500 transition group-open:rotate-180 dark:text-slate-400">
-                        ▼
-                      </span>
-                    </summary>
-
-                    <div className="border-t border-black/5 px-4 py-4 dark:border-white/10">
-                      {isGerente ? (
-                        <div className="space-y-3">
-                        <textarea
-                          aria-label={`Nota do mes ${mes}`}
-                          aria-describedby={`nota-mes-${mes}-help`}
-                          className="min-h-28 w-full rounded-2xl border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                          placeholder="Ex.: Joao pagou em dois depositos por acordo."
-                          value={draft}
-                          onChange={(event) =>
-                            setNoteDrafts((current) => ({
-                              ...current,
-                              [mes]: event.target.value,
-                            }))
-                          }
-                        />
-                        <p
-                          id={`nota-mes-${mes}-help`}
-                          className="text-xs text-slate-500 dark:text-slate-400"
-                        >
-                          Apenas o gerente pode criar, editar ou excluir esta nota.
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            className="h-9 bg-slate-900 text-white hover:bg-slate-800"
-                            disabled={savingNoteMonth === mes}
-                            onClick={() => handleSaveNote(mes)}
-                          >
-                            {savingNoteMonth === mes ? "Salvando..." : nota ? "Salvar edicao" : "Salvar nota"}
-                          </Button>
-                          {nota ? (
-                            <Button
-                              className="h-9 border border-red-200 bg-white text-red-700 hover:bg-red-50"
-                              disabled={deletingNoteId === nota.id}
-                              onClick={() => handleDeleteNote(nota)}
-                            >
-                              {deletingNoteId === nota.id ? "Removendo..." : "Excluir nota"}
-                            </Button>
-                          ) : null}
-                        </div>
-                        </div>
-                      ) : nota ? (
-                        <p className="text-sm leading-6 text-slate-700 dark:text-slate-200">{nota.texto}</p>
-                      ) : (
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                          Nenhuma nota registrada para este mes.
-                        </p>
-                      )}
-                    </div>
-                  </details>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-        ) : null}
-
         {chartsModalOpen ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-md">
             <Card className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-[2.4rem] border-white/70 bg-white/95 dark:border-white/10 dark:bg-[rgba(15,23,42,0.96)]">
               <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <CardTitle className="text-slate-900 dark:text-white">Graficos do caixa</CardTitle>
+                    <CardTitle className="text-slate-900 dark:text-white">Gráficos do caixa</CardTitle>
                     <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                      Leitura visual da arrecadacao, adimplencia e distribuicao do mes atual.
+                      Leitura visual da arrecadação, adimplência e distribuição do mês atual.
                     </p>
                   </div>
                   <Button variant="outline" onClick={() => setChartsModalOpen(false)}>
@@ -1869,9 +2016,9 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
               <CardContent className="space-y-6">
                 <div className="grid gap-6 xl:grid-cols-2">
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/80">
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">Arrecadacao por mes</p>
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">Arrecadação por mês</p>
                     <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                      Comparativo entre valores confirmados e pendentes em cada mes.
+                      Comparativo entre valores confirmados e pendentes em cada mês.
                     </p>
                     <div className="mt-4 h-72">
                       <ResponsiveContainer width="100%" height="100%">
@@ -1889,9 +2036,9 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                   </div>
 
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/80">
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">Tendencia de adimplencia</p>
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">Tendencia de adimplência</p>
                     <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                      Percentual de membros confirmados em cada mes.
+                      Percentual de membros confirmados em cada mês.
                     </p>
                     <div className="mt-4 h-72">
                       <ResponsiveContainer width="100%" height="100%">
@@ -1903,8 +2050,8 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                           <Legend />
                           <Line
                             type="monotone"
-                            dataKey="adimplencia"
-                            name="Adimplencia"
+                            dataKey="adimplência"
+                            name="Adimplência"
                             stroke="#2563eb"
                             strokeWidth={3}
                             dot={{ fill: "#2563eb", r: 4 }}
@@ -1916,9 +2063,9 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                 </div>
 
                 <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/80">
-                  <p className="text-sm font-medium text-slate-900 dark:text-white">Distribuicao do mes atual</p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">Distribuição do mês atual</p>
                   <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                    Panorama rapido dos status de pagamento no mes atual.
+                    Panorama rápido dos status de pagamento no mês atual.
                   </p>
                   <div className="mt-4 h-80">
                     <ResponsiveContainer width="100%" height="100%">
@@ -1952,9 +2099,9 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
               <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <CardTitle className="text-slate-900 dark:text-white">Notas por mes</CardTitle>
+                    <CardTitle className="text-slate-900 dark:text-white">Notas por mês</CardTitle>
                     <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                      Observacoes do gerente e historico de combinados organizados por mes.
+                      Observações do gerente e histórico de combinados organizados por mês.
                     </p>
                   </div>
                   <Button variant="outline" onClick={() => setNotesModalOpen(false)}>
@@ -1981,10 +2128,10 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4">
                         <div className="space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="font-medium text-slate-900 dark:text-white">Mes {mes}</p>
+                            <p className="font-medium text-slate-900 dark:text-white">Mês {mes}</p>
                             {mes === caixa?.mesAtual ? (
                               <Badge className="bg-emerald-100 text-emerald-900 hover:bg-emerald-100">
-                                mes atual
+                                mês atual
                               </Badge>
                             ) : null}
                             {hasContent ? (
@@ -2000,7 +2147,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                           <p className="text-sm text-slate-600 dark:text-slate-300">
                             {nota?.texto?.trim()
                               ? `${nota.texto.trim().slice(0, 90)}${nota.texto.trim().length > 90 ? "..." : ""}`
-                              : "Sem observacoes registradas neste mes."}
+                              : "Sem observações registradas neste mês."}
                           </p>
                         </div>
                         <span className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500 transition group-open:rotate-180 dark:text-slate-400">
@@ -2012,10 +2159,10 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                         {isGerente ? (
                           <div className="space-y-3">
                             <textarea
-                              aria-label={`Nota do mes ${mes}`}
+                              aria-label={`Nota do mês ${mes}`}
                               aria-describedby={`nota-mes-${mes}-help`}
                               className="min-h-28 w-full rounded-2xl border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                              placeholder="Ex.: Joao pagou em dois depositos por acordo."
+                              placeholder="Ex.: João pagou em dois depósitos por acordo."
                               value={draft}
                               onChange={(event) =>
                                 setNoteDrafts((current) => ({
@@ -2028,7 +2175,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                               id={`nota-mes-${mes}-help`}
                               className="text-xs text-slate-500 dark:text-slate-400"
                             >
-                              Apenas o gerente pode criar, editar ou excluir esta nota.
+                              Apenas o gerente pode criar, editar ou excluir está nota.
                             </p>
                             <div className="flex flex-wrap gap-2">
                               <Button
@@ -2036,7 +2183,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                                 disabled={savingNoteMonth === mes}
                                 onClick={() => handleSaveNote(mes)}
                               >
-                                {savingNoteMonth === mes ? "Salvando..." : nota ? "Salvar edicao" : "Salvar nota"}
+                                {savingNoteMonth === mes ? "Salvando..." : nota ? "Salvar edição" : "Salvar nota"}
                               </Button>
                               {nota ? (
                                 <Button
@@ -2053,7 +2200,7 @@ export function CaixaDetailClient({ caixaId }: { caixaId: string }) {
                           <p className="text-sm leading-6 text-slate-700 dark:text-slate-200">{nota.texto}</p>
                         ) : (
                           <p className="text-sm text-slate-500 dark:text-slate-400">
-                            Nenhuma nota registrada para este mes.
+                            Nenhuma nota registrada para este mês.
                           </p>
                         )}
                       </div>

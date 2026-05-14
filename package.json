@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "admin:upgrade:list": "node scripts/manage-upgrade-requests.mjs list",
+    "admin:upgrade:approve": "node scripts/manage-upgrade-requests.mjs approve",
+    "admin:upgrade:reject": "node scripts/manage-upgrade-requests.mjs reject",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },

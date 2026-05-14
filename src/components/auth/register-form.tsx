@@ -30,7 +30,7 @@ export function RegisterForm() {
   });
 
   function getInviteTokenFromNextPath() {
-    if (!next || !next.startsWith("/entrar?")) {
+    if (!next || !next.startsWith("/entrará")) {
       return null;
     }
 
@@ -67,7 +67,7 @@ export function RegisterForm() {
       toast.success("Conta criada com sucesso!");
       window.location.assign(next || "/painel");
     } catch (error) {
-      toast.error(getFirebaseAuthErrorMessage(error, "Nao foi possivel criar sua conta."));
+      toast.error(getFirebaseAuthErrorMessage(error, "Não foi possível criar sua conta."));
     }
   }
 
@@ -94,11 +94,13 @@ export function RegisterForm() {
         });
       }
 
-      toast.success(`Conta criada com Google para ${result.user.displayName ?? "voce"}!`);
+      toast.success(`Conta criada com Google para ${result.user.displayName ?? "você"}!`);
       window.location.assign(next || "/painel");
     } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("Falha no cadastro com Google.", error);
       toast.error(
-        getFirebaseAuthErrorMessage(error, "Nao foi possivel criar sua conta com Google."),
+        getFirebaseAuthErrorMessage(error, "Não foi possível criar sua conta com Google."),
       );
     } finally {
       setPendingGoogle(false);
@@ -128,11 +130,11 @@ export function RegisterForm() {
         });
       }
 
-      toast.success(`Conta criada com Apple para ${result.user.displayName ?? "voce"}!`);
+      toast.success(`Conta criada com Apple para ${result.user.displayName ?? "você"}!`);
       window.location.assign(next || "/painel");
     } catch (error) {
       toast.error(
-        getFirebaseAuthErrorMessage(error, "Nao foi possivel criar sua conta com Apple."),
+        getFirebaseAuthErrorMessage(error, "Não foi possível criar sua conta com Apple."),
       );
     } finally {
       setPendingApple(false);
@@ -160,7 +162,7 @@ export function RegisterForm() {
               {...register("nome")}
             />
             <p id="register-nome-help" className="text-xs text-slate-500 dark:text-slate-400">
-              Nome que identificara voce como gerente do caixa.
+              Nome que identificara você como gerente do caixa.
             </p>
             {errors.nome ? (
               <p id="register-nome-error" className="text-sm text-red-600">
@@ -174,7 +176,7 @@ export function RegisterForm() {
             <input
               id="email"
               type="email"
-              placeholder="voce@exemplo.com"
+              placeholder="você@exemplo.com"
               aria-describedby={errors.email ? "register-email-error" : "register-email-help"}
               aria-invalid={errors.email ? "true" : "false"}
               className="flex h-12 w-full rounded-[1.2rem] border border-[#dbe7df] bg-white px-4 py-2 text-sm text-[#13231C] shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] transition-colors placeholder:text-[#8a978f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7258]/20 dark:border-white/10 dark:bg-[rgba(15,23,42,0.82)] dark:text-slate-100 dark:placeholder:text-slate-500"

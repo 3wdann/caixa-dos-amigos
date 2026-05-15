@@ -8,6 +8,7 @@ import {
   ChartColumnIncreasing,
   CircleDollarSign,
   Clock3,
+  FileSpreadsheet,
   ShieldCheck,
   Star,
   UserPlus,
@@ -37,8 +38,9 @@ const steps = [
 function Logo() {
   return (
     <div className="flex items-center gap-3">
-      <div className="relative grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-[#064E2E] via-[#0B6B3A] to-[#052E1B] text-white shadow-lg shadow-[#052E1B]/20">
+      <div className="relative grid h-12 w-12 place-items-center rounded-[1.1rem] bg-gradient-to-br from-[#064E2E] via-[#0B6B3A] to-[#052E1B] text-white shadow-lg shadow-[#052E1B]/20">
         <CircleDollarSign className="h-7 w-7 text-[#F6C85F]" strokeWidth={2.5} />
+        <span className="absolute -right-1 -top-1 h-3 w-1.5 rotate-45 rounded-full bg-[#F6C85F]" />
       </div>
       <div className="text-lg font-black tracking-[0.08em] text-[#052E1B] dark:text-slate-100">
         CAIXA DOS AMIGOS
@@ -88,14 +90,17 @@ function MiniChart() {
 function DashboardCard({ compact = false }: { compact?: boolean }) {
   return (
     <div
-      className={`rounded-[2rem] border border-[#052E1B]/10 bg-white/92 p-5 shadow-2xl shadow-[#052E1B]/10 backdrop-blur ${
+      className={`rounded-[2rem] border border-[#052E1B]/10 bg-white/95 p-5 shadow-2xl shadow-[#052E1B]/10 backdrop-blur ${
         compact ? "w-full scale-[.82] origin-top" : "w-full max-w-[450px]"
       }`}
     >
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between rounded-2xl bg-[#F8FBF8] px-4 py-3">
         <div className="flex items-center gap-2 text-xl font-black text-[#052E1B] dark:text-slate-50">
           <ChartColumnIncreasing className="h-5 w-5" /> Painel do gerente
         </div>
+        <span className="rounded-full bg-[#EAF6EC] px-3 py-1 text-sm font-semibold text-[#0B6B3A]">
+          Maio 2026
+        </span>
         <Bell className="h-5 w-5 text-[#052E1B] dark:text-slate-300" />
       </div>
 
@@ -109,7 +114,8 @@ function DashboardCard({ compact = false }: { compact?: boolean }) {
         <MiniChart />
       </div>
 
-      <div className="mt-4 rounded-3xl bg-[#EAF6EC]/80 p-5 dark:bg-white/5">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-3xl bg-[#EAF6EC]/80 p-5 dark:bg-white/5">
         <div className="flex items-center justify-between">
           <div>
             <p className="font-black text-[#052E1B] dark:text-slate-50">Pagamentos do mês</p>
@@ -119,6 +125,14 @@ function DashboardCard({ compact = false }: { compact?: boolean }) {
         </div>
         <div className="mt-4 h-3 overflow-hidden rounded-full bg-[#D3E9D7] dark:bg-white/10">
           <div className="h-full w-3/4 rounded-full bg-gradient-to-r from-[#0B6B3A] to-[#052E1B]" />
+        </div>
+        </div>
+        <div className="rounded-3xl border border-[#F1D99D] bg-[#FFF8E7] p-5">
+          <p className="font-black text-[#052E1B]">Próximo ponto</p>
+          <p className="mt-1 text-sm text-[#8B6A11]">Carlos recebe no mês 3</p>
+          <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-[#064E2E]">
+            <FileSpreadsheet className="h-4 w-4" /> Relatório pronto
+          </div>
         </div>
       </div>
 
@@ -142,7 +156,7 @@ function DashboardCard({ compact = false }: { compact?: boolean }) {
             </div>
           ))}
         </div>
-        <button className="mt-4 flex w-full items-center justify-between text-sm font-black text-[#0B6B3A] dark:text-emerald-300">
+        <button className="mt-4 flex w-full items-center justify-between rounded-2xl bg-[#F8FBF8] px-4 py-3 text-sm font-black text-[#0B6B3A] dark:bg-white/5 dark:text-emerald-300">
           Ver todos os membros <ArrowRight className="h-4 w-4" />
         </button>
       </div>
@@ -204,8 +218,14 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(234,246,236,0.95),_transparent_24%),radial-gradient(circle_at_88%_10%,_rgba(246,200,95,0.18),_transparent_20%),linear-gradient(180deg,_#FBFAF6_0%,_#F7F1E6_100%)] px-5 py-8 font-sans text-slate-900 dark:bg-[radial-gradient(circle_at_top_left,_rgba(29,78,60,0.18),_transparent_20%),radial-gradient(circle_at_88%_10%,_rgba(246,200,95,0.06),_transparent_16%),linear-gradient(180deg,_#0b1220_0%,_#111827_100%)] dark:text-slate-100">
       <section className="mx-auto max-w-7xl">
-        <header className="mb-8 flex flex-col gap-4 rounded-[2rem] border border-[#D7E7DA] bg-white/82 px-5 py-4 shadow-[0_18px_40px_rgba(5,46,27,0.08)] backdrop-blur md:flex-row md:items-center md:justify-between dark:border-white/10 dark:bg-[rgba(15,23,42,0.72)] dark:shadow-[0_18px_40px_rgba(0,0,0,0.3)]">
+        <header className="mb-8 flex flex-col gap-4 rounded-[2rem] border border-[#D7E7DA] bg-white/90 px-5 py-4 shadow-[0_18px_40px_rgba(5,46,27,0.08)] backdrop-blur md:flex-row md:items-center md:justify-between dark:border-white/10 dark:bg-[rgba(15,23,42,0.72)] dark:shadow-[0_18px_40px_rgba(0,0,0,0.3)]">
           <Logo />
+
+          <nav className="hidden items-center gap-8 text-sm font-semibold text-[#061F16] lg:flex">
+            <a href="#recursos" className="hover:text-[#0B6B3A]">Recursos</a>
+            <Link href="/planos" className="hover:text-[#0B6B3A]">Planos</Link>
+            <a href="#como-funciona" className="hover:text-[#0B6B3A]">Como funciona</a>
+          </nav>
 
           <div className="flex flex-wrap items-center gap-3">
             <ThemeToggle compact />
@@ -262,7 +282,7 @@ export default function Home() {
         </header>
 
         <div className="space-y-8">
-          <div className="overflow-hidden rounded-[2rem] border border-[#052E1B]/10 bg-white shadow-2xl shadow-[#052E1B]/10 dark:border-white/10 dark:bg-[rgba(15,23,42,0.84)] dark:shadow-[0_18px_40px_rgba(0,0,0,0.34)]">
+          <div className="overflow-hidden rounded-[2.2rem] border border-[#052E1B]/10 bg-white shadow-2xl shadow-[#052E1B]/10 dark:border-white/10 dark:bg-[rgba(15,23,42,0.84)] dark:shadow-[0_18px_40px_rgba(0,0,0,0.34)]">
             <div className="relative overflow-hidden p-6 md:p-10 xl:p-12">
               <div className="pointer-events-none absolute inset-0">
                 <div className="absolute -left-10 bottom-16 h-36 w-64 rounded-[999px] bg-[#EAF6EC]" />
@@ -275,12 +295,12 @@ export default function Home() {
                     <Star className="h-4 w-4 fill-current text-amber-400" /> Fase Beta
                   </div>
 
-                  <h1 className="mt-5 max-w-[8.5ch] text-5xl font-black leading-[.92] tracking-tight text-[#052E1B] dark:text-slate-50 md:text-7xl">
-                    Controle seu caixa em um só lugar
+                  <h1 className="mt-5 max-w-[9ch] text-5xl font-black leading-[.92] tracking-tight text-[#052E1B] dark:text-slate-50 md:text-7xl">
+                    Controle o caixa do seu grupo sem complicação
                   </h1>
                   <p className="mt-6 max-w-xl text-xl leading-8 text-[#475569] dark:text-slate-300">
-                    Controle seu caixa, pagamentos, membros e rodízios em um só lugar. O gerente
-                    organiza tudo e compartilha as informações com o grupo.
+                    Organize membros, pagamentos, rodízios e prestação de contas em um painel simples,
+                    seguro e fácil de compartilhar.
                   </p>
 
                   <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -305,24 +325,27 @@ export default function Home() {
                             Criar meu caixa <ArrowRight className="h-4 w-4" />
                           </Button>
                         </Link>
-                        <Link href="/login">
+                        <Link href="/consultar">
                           <Button
                             variant="outline"
                             className="rounded-2xl border border-[#052E1B] bg-white/70 px-8 py-4 font-black text-[#052E1B] transition hover:-translate-y-0.5 hover:bg-emerald-50 dark:border-white/10 dark:bg-[rgba(15,23,42,0.72)] dark:text-slate-100 dark:hover:bg-white/8"
                           >
-                            Entrar
+                            Acompanhar por ID
                           </Button>
                         </Link>
                       </>
                     )}
                   </div>
 
-                  <div className="mt-6 grid max-w-xl gap-2 text-sm text-[#475569] dark:text-slate-300 sm:grid-cols-2">
-                    <span className="rounded-2xl border border-[#D7E7DA] bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-                      Gerente cadastra membros e controla pagamentos.
+                  <div id="recursos" className="mt-8 grid max-w-2xl gap-3 text-sm text-[#475569] dark:text-slate-300 sm:grid-cols-3">
+                    <span className="rounded-2xl border border-[#D7E7DA] bg-white/80 px-4 py-3 shadow-sm dark:border-white/10 dark:bg-white/5">
+                      Sem planilhas perdidas
                     </span>
-                    <span className="rounded-2xl border border-[#D7E7DA] bg-white/70 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-                      Consulta pública pelo ID do caixa para participantes.
+                    <span className="rounded-2xl border border-[#D7E7DA] bg-white/80 px-4 py-3 shadow-sm dark:border-white/10 dark:bg-white/5">
+                      Compartilhamento por ID
+                    </span>
+                    <span className="rounded-2xl border border-[#D7E7DA] bg-white/80 px-4 py-3 shadow-sm dark:border-white/10 dark:bg-white/5">
+                      Pagamentos e relatórios
                     </span>
                   </div>
 
@@ -337,7 +360,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="relative z-20 border-t border-slate-100 bg-[#FBFAF6] px-8 py-8 dark:border-white/10 dark:bg-[rgba(9,15,26,0.68)]">
+            <div id="como-funciona" className="relative z-20 border-t border-slate-100 bg-[#FBFAF6] px-8 py-8 dark:border-white/10 dark:bg-[rgba(9,15,26,0.68)]">
               <div className="mb-6 flex items-center justify-center gap-5 text-xl font-black text-[#052E1B] dark:text-slate-50">
                 <span className="h-px w-16 bg-[#F4B942]" />
                 Como funciona

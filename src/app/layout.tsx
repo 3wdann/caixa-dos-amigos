@@ -49,7 +49,7 @@ export default function RootLayout({
     >
       <body className={`${geistSans.variable} ${geistMono.variable} theme min-h-screen bg-background antialiased`}>
         <a href="#main-content" className="skip-link">
-          Pular para o conteudo principal
+          Pular para o conte?do principal
         </a>
         <AppProviders>{children}</AppProviders>
       </body>

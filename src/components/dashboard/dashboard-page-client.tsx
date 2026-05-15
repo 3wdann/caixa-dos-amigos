@@ -1,6 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  ArrowRight,
+  Crown,
+  Home,
+  LayoutDashboard,
+  Search,
+  Settings,
+  Sparkles,
+  WalletCards,
+} from "lucide-react";
 
 import { CaixaCard } from "@/components/dashboard/caixa-card";
 import { CreateCaixaForm } from "@/components/dashboard/create-caixa-form";
@@ -122,7 +132,7 @@ export function DashboardPageClient() {
       tabIndex={-1}
       className="brand-shell"
     >
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
         {!isOnline ? <OfflineBanner /> : null}
         <Card className="brand-card rounded-[1.9rem]">
           <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
@@ -161,7 +171,7 @@ export function DashboardPageClient() {
               ) : null}
               <ThemeToggle />
               <Button
-                className="bg-primary text-primary-foreground"
+                className="rounded-2xl green-gradient text-white shadow-[0_16px_34px_rgba(5,46,27,0.18)]"
                 disabled={freeManagedLimitReached}
                 onClick={() => setCreateModalOpen(true)}
               >
@@ -181,16 +191,43 @@ export function DashboardPageClient() {
           </CardContent>
         </Card>
 
+        <div className="grid gap-5 lg:grid-cols-[220px_1fr]">
+          <aside className="hidden soft-panel rounded-[1.8rem] p-3 lg:block">
+            <nav className="space-y-1 text-sm font-semibold text-[#13231C]">
+              <Link href="/painel" className="flex items-center gap-3 rounded-2xl bg-[#064E2E] px-4 py-3 text-white">
+                <Home className="h-4 w-4" /> Início
+              </Link>
+              <a href="#meus-caixas" className="flex items-center gap-3 rounded-2xl px-4 py-3 text-[#475569] hover:bg-[#F6FBF7] hover:text-[#064E2E]">
+                <WalletCards className="h-4 w-4" /> Meus caixas
+              </a>
+              <Link href="/consultar" className="flex items-center gap-3 rounded-2xl px-4 py-3 text-[#475569] hover:bg-[#F6FBF7] hover:text-[#064E2E]">
+                <Search className="h-4 w-4" /> Consultar ID
+              </Link>
+              <Link href="/planos" className="flex items-center gap-3 rounded-2xl px-4 py-3 text-[#475569] hover:bg-[#F6FBF7] hover:text-[#064E2E]">
+                <Crown className="h-4 w-4" /> Plano Pro
+              </Link>
+              {isMasterProfile(profile) ? (
+                <Link href="/painel/master" className="flex items-center gap-3 rounded-2xl px-4 py-3 text-[#475569] hover:bg-[#F6FBF7] hover:text-[#064E2E]">
+                  <Settings className="h-4 w-4" /> Master
+                </Link>
+              ) : null}
+            </nav>
+          </aside>
+
+          <div className="space-y-6">
         <Card className="overflow-hidden rounded-[2rem] border-[#dbe7df] bg-white dark:border-white/10 dark:bg-[rgba(15,23,42,0.86)]">
           <CardContent className="space-y-4 p-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm uppercase tracking-[0.2em] text-[#2F7258] dark:text-[#E2F3E7]">Resumo rapido</p>
+              <p className="text-sm uppercase tracking-[0.2em] text-[#2F7258] dark:text-[#E2F3E7]">Resumo rápido</p>
               <p className="text-sm text-[#657469] dark:text-slate-300">
                 Escolha como quer usar o Caixa dos Amigos.
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-3">
               <div className="rounded-[1.6rem] border border-[#dbe7df] bg-[#F6FBF7] p-5 dark:border-white/10 dark:bg-[rgba(15,23,42,0.72)]">
+                <div className="mb-4 grid h-10 w-10 place-items-center rounded-2xl bg-[#E2F3E7] text-[#064E2E]">
+                  <Search className="h-5 w-5" />
+                </div>
                 <p className="text-sm text-[#657469] dark:text-slate-300">Entrar como membro</p>
                 <p className="mt-3 text-lg font-semibold text-[#13231C] dark:text-white">
                   Consultar por ID
@@ -202,7 +239,10 @@ export function DashboardPageClient() {
                   Consultar caixa
                 </Link>
               </div>
-              <div className="rounded-[1.6rem] bg-[#214F3F] p-5 text-white shadow-[0_18px_36px_rgba(33,79,63,0.2)]">
+              <div className="rounded-[1.6rem] green-gradient p-5 text-white shadow-[0_18px_36px_rgba(33,79,63,0.2)]">
+                <div className="mb-4 grid h-10 w-10 place-items-center rounded-2xl bg-white/12 text-white">
+                  <LayoutDashboard className="h-5 w-5" />
+                </div>
                 <p className="text-sm text-white/75">Caixas que gerencio</p>
                 <p className="mt-3 text-3xl font-semibold">{managedCaixas.length}</p>
                 <p className="mt-2 text-sm text-white/75">
@@ -210,6 +250,9 @@ export function DashboardPageClient() {
                 </p>
               </div>
               <div className="rounded-[1.6rem] border border-[#ecd69f] bg-[#fff9ec] p-5 dark:border-amber-300/15 dark:bg-[rgba(15,23,42,0.72)]">
+                <div className="mb-4 grid h-10 w-10 place-items-center rounded-2xl bg-[#F4B942]/20 text-[#8B6A11]">
+                  <Sparkles className="h-5 w-5" />
+                </div>
                 <p className="text-sm text-[#8B6A11] dark:text-slate-300">Virar Pro gerente/membro</p>
                 <p className="mt-3 text-lg font-semibold text-[#13231C] dark:text-white">
                   {getPlanoLabel(effectivePlano)}
@@ -245,17 +288,22 @@ export function DashboardPageClient() {
         {hasDashboardSections ? (
           <div className="grid gap-6">
             {hasManagedCaixas ? (
-              <section className="space-y-4" aria-labelledby="managed-caixas-title">
+              <section id="meus-caixas" className="space-y-4" aria-labelledby="managed-caixas-title">
                 <div className="flex items-center justify-between">
-                  <h2
-                    id="managed-caixas-title"
-                    className="text-xl font-semibold text-[#13231C] dark:text-white"
-                  >
-                    Caixas que gerencio
-                  </h2>
-                  <span className="text-sm text-[#657469] dark:text-slate-400">
-                    Gerenciamento principal
-                  </span>
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#2F7258]">
+                      Meus caixas ativos
+                    </p>
+                    <h2
+                      id="managed-caixas-title"
+                      className="mt-1 text-xl font-semibold text-[#13231C] dark:text-white"
+                    >
+                      Caixas que gerencio
+                    </h2>
+                  </div>
+                  <Button variant="outline" className="hidden rounded-2xl sm:inline-flex" onClick={() => setCreateModalOpen(true)}>
+                    Novo caixa <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {managedCaixas.map((caixa) => (
@@ -280,6 +328,9 @@ export function DashboardPageClient() {
             </CardContent>
           </Card>
         )}
+
+          </div>
+        </div>
 
         {createModalOpen ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 px-4 py-6 backdrop-blur-md">
